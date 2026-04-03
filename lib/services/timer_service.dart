@@ -28,13 +28,13 @@ class TimerService extends ChangeNotifier {
   String get formattedTime {
     final minutes = _remainingSeconds ~/ 60;
     final seconds = _remainingSeconds % 60;
-    return '\${minutes.toString().padLeft(2, '0')}:\${seconds.toString().padLeft(2, '0')}';
+    return "${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}";
   }
 
   String get formattedElapsedTime {
     final minutes = elapsedSeconds ~/ 60;
     final seconds = elapsedSeconds % 60;
-    return '\${minutes.toString().padLeft(2, '0')}:\${seconds.toString().padLeft(2, '0')}';
+    return "${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}";
   }
 
   // Start a new focus session

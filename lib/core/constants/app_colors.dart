@@ -5,30 +5,31 @@ import 'package:flutter/material.dart';
 class AppColors {
   // Primary Colors - Inspired by Duolingo's green
   static const Color primary = Color(0xFF58CC02);      // Duolingo green
-  static const Color primaryDark = Color(0xFF46A302);   // Darker green
+  static const Color primaryDark = Color(0xFF47A401);   // Darker green
   static const Color primaryLight = Color(0xFF6FE817);  // Lighter green
 
   // Secondary Colors - Vibrant and engaging
   static const Color secondary = Color(0xFF1CB0F6);     // Duolingo blue
-  static const Color secondaryDark = Color(0xFF1493D4); // Darker blue
+  static const Color secondaryDark = Color(0xFF1588C1); // Darker blue
+  static const Color accentDark = Color(0xFFCD7800);    // Darker orange
   static const Color accent = Color(0xFFFF9600);        // Orange accent
 
   // Background Colors
-  static const Color background = Color(0xFFF7F7F7);    // Light gray
+  static const Color background = Color(0xFFF9FAFC);    // Light gray
   static const Color backgroundDark = Color(0xFF131F24); // Dark mode bg
   static const Color surface = Color(0xFFFFFFFF);       // Card surface
   static const Color surfaceDark = Color(0xFF1E2A2F);   // Dark card surface
 
   // Text Colors
-  static const Color textPrimary = Color(0xFF4B4B4B);   // Dark gray
-  static const Color textSecondary = Color(0xFF777777); // Medium gray
+  static const Color textPrimary = Color(0xFF222733);   // Dark gray
+  static const Color textSecondary = Color(0xFF777F8D); // Medium gray
   static const Color textLight = Color(0xFFAAAAAA);     // Light gray
   static const Color textWhite = Color(0xFFFFFFFF);     // White
 
   // Status Colors
   static const Color success = Color(0xFF58CC02);       // Success green
   static const Color warning = Color(0xFFFF9600);       // Warning orange
-  static const Color error = Color(0xFFFF4B4B);         // Error red
+  static const Color error = Color(0xFFEA333D);         // Error red
   static const Color info = Color(0xFF1CB0F6);          // Info blue
 
   // Gamification Colors
@@ -41,7 +42,8 @@ class AppColors {
   static const Color water = Color(0xFF4FC3F7);         // Ocean blue
   static const Color sand = Color(0xFFFFE082);          // Beach sand
   static const Color grass = Color(0xFF66BB6A);         // Island grass
-  static const Color snow = Color(0xFFE1F5FE);          // Snow effects
+  static const Color snow = Color(0xFFF2F7FF);          // Snow effects
+  static const Color ice = Color(0xFFCCEDFF);           // Ice effects
 
   // Social Colors
   static const Color online = Color(0xFF4CAF50);        // Online status
@@ -68,6 +70,16 @@ class AppColors {
     Color(0xFF4FC3F7),
     Color(0xFF29B6F6),
   ];
+
+  // Border & Neutral Colors
+  static const Color border = Color(0xFFE0E4EA);        // Border gray
+  static const Color grey = Color(0xFF999EA8);           // Medium grey
+  static const Color lightGrey = Color(0xFFEDEFF0);     // Light grey
+
+  // Medal Colors
+  static const Color gold = Color(0xFFFFD700);           // Gold
+  static const Color silver = Color(0xFFC0C0C0);         // Silver
+  static const Color bronze = Color(0xFFCD7F32);         // Bronze
 
   // Shadow Colors
   static const Color shadowLight = Color(0x1A000000);   // Light shadow

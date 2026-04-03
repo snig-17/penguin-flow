@@ -105,7 +105,7 @@ class _AnimatedButtonState extends State<AnimatedButton>
         (isEnabled ? AppColors.primary : AppColors.textSecondary);
 
     final textColor = widget.textColor ?? 
-        (isEnabled ? Colors.white : AppColors.textDisabled);
+        (isEnabled ? Colors.white : AppColors.textLight);
 
     Widget button = AnimatedBuilder(
       animation: _controller,

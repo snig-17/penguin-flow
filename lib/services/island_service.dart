@@ -1,18 +1,28 @@
 // lib/services/island_service.dart
 import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/foundation.dart';
-import '../../../models/island_model.dart';
-import '../../../models/user_model.dart';
-import '../../storage_service.dart';
+import '../models/island_model.dart';
+import '../models/user_model.dart';
+import 'storage_service.dart';
 
 class IslandService extends ChangeNotifier {
+  static IslandService? _instance;
+
+  static IslandService get instance {
+    _instance ??= IslandService._(StorageService.instance);
+    return _instance!;
+  }
+
   final StorageService _storageService;
   IslandModel? _userIsland;
   List<IslandModel> _friendIslands = [];
 
-  IslandService(this._storageService) {
+  IslandService._(this._storageService) {
     _loadIslandData();
   }
+
+  factory IslandService(StorageService storageService) => instance;
 
   // Getters
   IslandModel? get userIsland => _userIsland;
@@ -29,7 +39,7 @@ class IslandService extends ChangeNotifier {
       ownerName: ownerName,
       theme: theme,
       buildings: [
-        Building(
+        Building.withPosition(
           type: BuildingType.tent,
           position: const Offset(0.3, 0.7),
           level: 1,
@@ -37,7 +47,7 @@ class IslandService extends ChangeNotifier {
         ),
       ],
       decorations: [
-        Decoration(
+        Decoration.withPosition(
           type: 'tree_pine',
           position: const Offset(0.2, 0.6),
           isUnlocked: true,
@@ -124,7 +134,7 @@ class IslandService extends ChangeNotifier {
     // Find a good position for the new building
     final position = _findBuildingPosition(type);
 
-    final newBuilding = Building(
+    final newBuilding = Building.withPosition(
       type: type,
       position: position,
       level: 1,
@@ -142,7 +152,7 @@ class IslandService extends ChangeNotifier {
     // Find a good position for the new decoration
     final position = _findDecorationPosition();
 
-    final newDecoration = Decoration(
+    final newDecoration = Decoration.withPosition(
       type: type,
       position: position,
       isUnlocked: true,
@@ -263,7 +273,7 @@ class IslandService extends ChangeNotifier {
     final focusTime = 50 + random.nextInt(2000); // 50-2050 minutes
 
     final buildings = <Building>[
-      Building(
+      Building.withPosition(
         type: BuildingType.tent,
         position: Offset(0.2 + random.nextDouble() * 0.6, 0.5 + random.nextDouble() * 0.3),
         level: 1 + random.nextInt(3),
@@ -273,7 +283,7 @@ class IslandService extends ChangeNotifier {
 
     // Add more buildings based on focus time
     if (focusTime > 120) {
-      buildings.add(Building(
+      buildings.add(Building.withPosition(
         type: BuildingType.cabin,
         position: Offset(0.1 + random.nextDouble() * 0.8, 0.2 + random.nextDouble() * 0.6),
         level: 1 + random.nextInt(2),
@@ -282,7 +292,7 @@ class IslandService extends ChangeNotifier {
     }
 
     if (focusTime > 600) {
-      buildings.add(Building(
+      buildings.add(Building.withPosition(
         type: BuildingType.lighthouse,
         position: Offset(0.6 + random.nextDouble() * 0.3, 0.1 + random.nextDouble() * 0.4),
         level: 1 + random.nextInt(2),
@@ -291,13 +301,13 @@ class IslandService extends ChangeNotifier {
     }
 
     final decorations = <Decoration>[
-      Decoration(
+      Decoration.withPosition(
         type: 'tree_pine',
         position: Offset(random.nextDouble(), random.nextDouble()),
         isUnlocked: true,
       ),
       if (focusTime > 300)
-        Decoration(
+        Decoration.withPosition(
           type: 'rock_formation',
           position: Offset(random.nextDouble(), random.nextDouble()),
           isUnlocked: true,
@@ -305,7 +315,7 @@ class IslandService extends ChangeNotifier {
     ];
 
     return IslandModel(
-      id: 'friend_island_\$index',
+      id: 'friend_island_$index',
       ownerName: name,
       theme: theme,
       buildings: buildings,
@@ -335,7 +345,7 @@ class IslandService extends ChangeNotifier {
     final buildingCount = _userIsland!.buildings.length;
     final decorationCount = _userIsland!.decorations.length;
 
-    final completionPercentage = 
+    final completionPercentage =
         ((buildingCount / maxBuildings) + (decorationCount / maxDecorations)) / 2 * 100;
 
     return {

@@ -1,30 +1,90 @@
 // lib/providers/user_provider.dart
+import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../services/gamification_service.dart';
 import '../services/storage_service.dart';
+import '../services/firestore_service.dart';
 import '../models/user_model.dart';
 import '../models/achievement_model.dart';
 
 class UserProvider extends ChangeNotifier {
-  final GamificationService _gamificationService;
-  final StorageService _storageService;
+  late final GamificationService _gamificationService;
+  late final StorageService _storageService;
+  final FirestoreService _firestoreService = FirestoreService();
+  StreamSubscription<User?>? _authSubscription;
 
-  UserProvider({
-    required GamificationService gamificationService,
-    required StorageService storageService,
-  }) : _gamificationService = gamificationService,
-       _storageService = storageService {
+  /// Firebase Auth display name (may differ from local user name)
+  String? _firebaseDisplayName;
+  String? _firebaseEmail;
+
+  UserProvider() {
+    _storageService = StorageService.instance;
+    _gamificationService = GamificationService(_storageService);
     // Listen to gamification service changes
     _gamificationService.addListener(_onGamificationUpdate);
+
+    // Listen to Firebase Auth state changes
+    _authSubscription =
+        FirebaseAuth.instance.authStateChanges().listen(_onAuthStateChanged);
+  }
+
+  /// Called when auth state changes (login / logout)
+  Future<void> _onAuthStateChanged(User? user) async {
+    if (user != null) {
+      _firebaseDisplayName = user.displayName;
+      _firebaseEmail = user.email;
+      await loadUserFromFirestore(user.uid);
+    } else {
+      _firebaseDisplayName = null;
+      _firebaseEmail = null;
+    }
+    notifyListeners();
+  }
+
+  /// Load user data from Firestore and sync to local model
+  Future<void> loadUserFromFirestore(String uid) async {
+    try {
+      final data = await _firestoreService.getUserDocument(uid);
+      if (data != null) {
+        _firebaseDisplayName = data['name'] as String? ?? _firebaseDisplayName;
+        _firebaseEmail = data['email'] as String? ?? _firebaseEmail;
+      }
+    } catch (_) {
+      // Firestore may be offline; fall back to local data
+    }
+  }
+
+  /// Save stats to Firestore (call after session completion, etc.)
+  Future<void> syncStatsToFirestore() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || currentUser == null) return;
+    try {
+      await _firestoreService.updateUserDocument(user.uid, {
+        'level': currentUser!.level,
+        'totalXP': currentUser!.totalXP,
+        'currentStreak': currentUser!.currentStreak,
+        'longestStreak': currentUser!.longestStreak,
+        'completedSessions': currentUser!.completedSessions,
+        'totalFocusTime': currentUser!.totalFocusTime,
+        'lastActivityDate':
+            currentUser!.lastActivityDate?.toIso8601String(),
+      });
+    } catch (_) {
+      // Silently fail if offline
+    }
   }
 
   // User data getters
   UserModel? get currentUser => _gamificationService.currentUser;
   bool get isUserLoggedIn => currentUser != null;
+  UserModel? get user => currentUser; // alias for app.dart compatibility
 
-  // Profile information
-  String get userName => currentUser?.name ?? 'Penguin Explorer';
-  String get userEmail => currentUser?.email ?? '';
+  // Profile information (prefer Firebase data when available)
+  String get userName =>
+      _firebaseDisplayName ?? currentUser?.name ?? 'Penguin Explorer';
+  String get userEmail =>
+      _firebaseEmail ?? currentUser?.email ?? '';
   String get avatarPath => currentUser?.avatarPath ?? 'assets/images/penguin_default.png';
   DateTime? get joinDate => currentUser?.joinDate;
   DateTime? get lastActivity => currentUser?.lastActivityDate;
@@ -56,8 +116,8 @@ class UserProvider extends ChangeNotifier {
 
   int get unlockedAchievementCount => unlockedAchievements.length;
   int get totalAchievementCount => availableAchievements.length;
-  double get achievementProgress => totalAchievementCount > 0 
-      ? unlockedAchievementCount / totalAchievementCount 
+  double get achievementProgress => totalAchievementCount > 0
+      ? unlockedAchievementCount / totalAchievementCount
       : 0.0;
 
   // Streak information
@@ -128,16 +188,16 @@ class UserProvider extends ChangeNotifier {
   Map<String, dynamic> get userStatistics {
     if (currentUser == null) return {};
 
-    final daysSinceJoining = joinDate != null 
-        ? DateTime.now().difference(joinDate!).inDays 
+    final daysSinceJoining = joinDate != null
+        ? DateTime.now().difference(joinDate!).inDays
         : 0;
 
-    final averageSessionsPerDay = daysSinceJoining > 0 
-        ? totalSessions / daysSinceJoining 
+    final averageSessionsPerDay = daysSinceJoining > 0
+        ? totalSessions / daysSinceJoining
         : 0.0;
 
-    final averageFocusTimePerDay = daysSinceJoining > 0 
-        ? totalFocusTime / daysSinceJoining 
+    final averageFocusTimePerDay = daysSinceJoining > 0
+        ? totalFocusTime / daysSinceJoining
         : 0.0;
 
     return {
@@ -161,9 +221,9 @@ class UserProvider extends ChangeNotifier {
     final minutes = totalFocusTime % 60;
 
     if (hours > 0) {
-      return '\${hours}h \${minutes}m';
+      return '${hours}h ${minutes}m';
     } else {
-      return '\${minutes}m';
+      return '${minutes}m';
     }
   }
 
@@ -175,12 +235,12 @@ class UserProvider extends ChangeNotifier {
 
     if (difference.inDays > 365) {
       final years = difference.inDays ~/ 365;
-      return '\${years} year\${years > 1 ? 's' : ''} ago';
+      return '${years} year${years > 1 ? 's' : ''} ago';
     } else if (difference.inDays > 30) {
       final months = difference.inDays ~/ 30;
-      return '\${months} month\${months > 1 ? 's' : ''} ago';
+      return '${months} month${months > 1 ? 's' : ''} ago';
     } else if (difference.inDays > 0) {
-      return '\${difference.inDays} day\${difference.inDays > 1 ? 's' : ''} ago';
+      return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
     } else {
       return 'Today';
     }
@@ -193,11 +253,11 @@ class UserProvider extends ChangeNotifier {
     final difference = now.difference(lastActivity!);
 
     if (difference.inDays > 0) {
-      return '\${difference.inDays} day\${difference.inDays > 1 ? 's' : ''} ago';
+      return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
     } else if (difference.inHours > 0) {
-      return '\${difference.inHours} hour\${difference.inHours > 1 ? 's' : ''} ago';
+      return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
     } else if (difference.inMinutes > 0) {
-      return '\${difference.inMinutes} minute\${difference.inMinutes > 1 ? 's' : ''} ago';
+      return '${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''} ago';
     } else {
       return 'Just now';
     }
@@ -219,11 +279,13 @@ class UserProvider extends ChangeNotifier {
 
   double get overallProgress {
     // Calculate overall progress based on level, achievements, and streaks
-    final levelProgress = level / 50.0; // Max level 50
-    final achievementProgress = unlockedAchievementCount / totalAchievementCount;
+    final lvlProgress = level / 50.0; // Max level 50
+    final achProgress = totalAchievementCount > 0
+        ? unlockedAchievementCount / totalAchievementCount
+        : 0.0;
     final streakProgress = (currentStreak / 100.0).clamp(0.0, 1.0); // Max streak bonus at 100
 
-    return (levelProgress + achievementProgress + streakProgress) / 3.0;
+    return (lvlProgress + achProgress + streakProgress) / 3.0;
   }
 
   // Theme helpers
@@ -281,16 +343,16 @@ class UserProvider extends ChangeNotifier {
   // Motivational content
   String get motivationalQuote {
     final quotes = [
-      "Focus is the gateway to success! 🚀",
-      "Every session brings you closer to your goals! ⭐",
-      "Consistency beats intensity every time! 💪",
-      "Your future self will thank you! 🙏",
-      "Progress over perfection! 📈",
-      "Small steps lead to big achievements! 👣",
-      "Focus flows like water - steady and persistent! 🌊",
-      "Your potential is unlimited! ♾️",
-      "Every focused moment counts! ⏰",
-      "Building habits, building dreams! 🏗️",
+      "Focus is the gateway to success!",
+      "Every session brings you closer to your goals!",
+      "Consistency beats intensity every time!",
+      "Your future self will thank you!",
+      "Progress over perfection!",
+      "Small steps lead to big achievements!",
+      "Focus flows like water - steady and persistent!",
+      "Your potential is unlimited!",
+      "Every focused moment counts!",
+      "Building habits, building dreams!",
     ];
 
     // Use level to select quote (with some randomness)
@@ -306,6 +368,7 @@ class UserProvider extends ChangeNotifier {
   @override
   void dispose() {
     _gamificationService.removeListener(_onGamificationUpdate);
+    _authSubscription?.cancel();
     super.dispose();
   }
 }

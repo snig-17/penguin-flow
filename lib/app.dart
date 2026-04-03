@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -8,6 +9,8 @@ import 'providers/timer_provider.dart';
 import 'providers/island_provider.dart';
 import 'providers/gamification_provider.dart';
 import 'screens/splash_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/main_shell.dart';
 
 /// Main PenguinFlow application widget
 /// Sets up providers, theme, and navigation
@@ -18,55 +21,38 @@ class PenguinFlowApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        // User data and authentication
-        ChangeNotifierProvider(
-          create: (context) => UserProvider(),
-        ),
-
-        // Timer functionality
-        ChangeNotifierProvider(
-          create: (context) => TimerProvider(),
-        ),
-
-        // Island building and visualization
-        ChangeNotifierProvider(
-          create: (context) => IslandProvider(),
-        ),
-
-        // Gamification system (XP, levels, achievements)
-        ChangeNotifierProvider(
-          create: (context) => GamificationProvider(),
-        ),
+        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => TimerProvider()),
+        ChangeNotifierProvider(create: (_) => IslandProvider()),
+        ChangeNotifierProvider(create: (_) => GamificationProvider()),
       ],
-      child: Consumer<UserProvider>(
-        builder: (context, userProvider, child) {
-          return MaterialApp(
-            title: AppStrings.appName,
-            debugShowCheckedModeBanner: false,
-
-            // Theme configuration
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: userProvider.user?.darkModeEnabled == true 
-                ? ThemeMode.dark 
-                : ThemeMode.light,
-
-            // Initial route
-            home: const SplashScreen(),
-
-            // Global navigation and route configuration
-            navigatorKey: GlobalKey<NavigatorState>(),
-
-            // App-wide material configuration
-            builder: (context, child) {
-              return MediaQuery(
-                // Ensure text doesn't scale beyond readable limits
-                data: MediaQuery.of(context).copyWith(
-                  textScaler: TextScaler.linear(MediaQuery.of(context).textScaleFactor.clamp(0.8, 1.2)),
-                ),
-                child: child!,
-              );
-            },
+      child: MaterialApp(
+        title: AppStrings.appName,
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.light,
+        home: StreamBuilder<User?>(
+          stream: FirebaseAuth.instance.authStateChanges(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SplashScreen();
+            }
+            if (snapshot.hasData) {
+              return const MainShell();
+            }
+            return const LoginScreen();
+          },
+        ),
+        builder: (context, child) {
+          return MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: MediaQuery.of(context).textScaler.clamp(
+                minScaleFactor: 0.8,
+                maxScaleFactor: 1.2,
+              ),
+            ),
+            child: child!,
           );
         },
       ),

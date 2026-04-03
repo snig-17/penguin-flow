@@ -1,0 +1,32 @@
+{
+  "hosting": {
+    "public": "build/web",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "penguinflow-2fee1",
+          "appId": "1:331855341668:android:4142252a7484c9b0a85771",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "penguinflow-2fee1",
+          "configurations": {
+            "android": "1:331855341668:android:4142252a7484c9b0a85771",
+            "web": "1:331855341668:web:dc3f51cc54bc163ea85771"
+          }
+        }
+      }
+    }
+  }
+}

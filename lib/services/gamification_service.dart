@@ -7,13 +7,23 @@ import '../models/achievement_model.dart';
 import './storage_service.dart';
 
 class GamificationService extends ChangeNotifier {
+  static GamificationService? _instance;
+
+  static GamificationService get instance {
+    _instance ??= GamificationService._(StorageService.instance);
+    return _instance!;
+  }
+
   final StorageService _storageService;
   UserModel? _currentUser;
   List<AchievementModel> _unlockedAchievements = [];
 
-  GamificationService(this._storageService) {
+  GamificationService._(this._storageService) {
     _loadUserData();
   }
+
+  // Keep factory constructor for backwards compatibility
+  factory GamificationService(StorageService storageService) => instance;
 
   // Getters
   UserModel? get currentUser => _currentUser;

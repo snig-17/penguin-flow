@@ -2,6 +2,33 @@ import 'package:hive/hive.dart';
 
 part 'session_model.g.dart';
 
+/// Session type enum
+@HiveType(typeId: 11)
+enum SessionType {
+  @HiveField(0)
+  focus,
+  @HiveField(1)
+  shortBreak,
+  @HiveField(2)
+  longBreak,
+  @HiveField(3)
+  deepWork;
+
+  /// Base XP reward for this session type
+  int get baseXP {
+    switch (this) {
+      case SessionType.focus:
+        return 50;
+      case SessionType.shortBreak:
+        return 10;
+      case SessionType.longBreak:
+        return 25;
+      case SessionType.deepWork:
+        return 200;
+    }
+  }
+}
+
 /// Represents a focus session in PenguinFlow
 @HiveType(typeId: 1)
 class SessionModel extends HiveObject {
@@ -9,231 +36,111 @@ class SessionModel extends HiveObject {
   late String id;
 
   @HiveField(1)
-  late String type; // 'work', 'study', 'creative'
+  late SessionType type;
 
   @HiveField(2)
-  late Duration plannedDuration;
-
-  @HiveField(3)
-  late Duration? actualDuration;
-
-  @HiveField(4)
   late DateTime startTime;
 
+  @HiveField(3)
+  late Duration plannedDuration;
+
+  @HiveField(4)
+  DateTime? endTime;
+
   @HiveField(5)
-  late DateTime? endTime;
+  late Duration actualDuration;
 
   @HiveField(6)
-  late bool completed;
+  late bool wasCompleted;
 
   @HiveField(7)
   late int xpEarned;
 
   @HiveField(8)
-  late String? notes;
+  String? taskDescription;
 
   @HiveField(9)
-  late bool wasInterrupted;
-
-  @HiveField(10)
-  late List<DateTime> pauseTimes;
-
-  @HiveField(11)
-  late List<DateTime> resumeTimes;
+  late int pauseCount;
 
   SessionModel({
     required this.id,
     required this.type,
-    required this.plannedDuration,
-    this.actualDuration,
     required this.startTime,
+    required this.plannedDuration,
     this.endTime,
-    this.completed = false,
+    Duration? actualDuration,
+    this.wasCompleted = false,
     this.xpEarned = 0,
-    this.notes,
-    this.wasInterrupted = false,
-    List<DateTime>? pauseTimes,
-    List<DateTime>? resumeTimes,
+    this.taskDescription,
+    this.pauseCount = 0,
   }) {
-    this.pauseTimes = pauseTimes ?? [];
-    this.resumeTimes = resumeTimes ?? [];
+    this.actualDuration = actualDuration ?? Duration.zero;
   }
 
-  /// Complete the session
-  void complete() {
-    endTime = DateTime.now();
-    actualDuration = endTime!.difference(startTime);
-    completed = true;
-
-    // Calculate XP based on completion
-    final completionRate = actualDuration!.inMinutes / plannedDuration.inMinutes;
-    int baseXp = (actualDuration!.inMinutes * 2).round();
-
-    // Bonus for full completion
-    if (completionRate >= 1.0) {
-      baseXp = (baseXp * 1.5).round();
-    }
-
-    // Type multiplier
-    switch (type) {
-      case 'work':
-        xpEarned = baseXp;
-        break;
-      case 'study':
-        xpEarned = (baseXp * 1.2).round();
-        break;
-      case 'creative':
-        xpEarned = (baseXp * 1.5).round();
-        break;
-      default:
-        xpEarned = baseXp;
-    }
-
-    // Penalty for interruptions
-    if (wasInterrupted) {
-      xpEarned = (xpEarned * 0.8).round();
-    }
+  /// Create a copy of this model with updated fields
+  SessionModel copyWith({
+    String? id,
+    SessionType? type,
+    DateTime? startTime,
+    Duration? plannedDuration,
+    DateTime? endTime,
+    Duration? actualDuration,
+    bool? wasCompleted,
+    int? xpEarned,
+    String? taskDescription,
+    int? pauseCount,
+  }) {
+    return SessionModel(
+      id: id ?? this.id,
+      type: type ?? this.type,
+      startTime: startTime ?? this.startTime,
+      plannedDuration: plannedDuration ?? this.plannedDuration,
+      endTime: endTime ?? this.endTime,
+      actualDuration: actualDuration ?? this.actualDuration,
+      wasCompleted: wasCompleted ?? this.wasCompleted,
+      xpEarned: xpEarned ?? this.xpEarned,
+      taskDescription: taskDescription ?? this.taskDescription,
+      pauseCount: pauseCount ?? this.pauseCount,
+    );
   }
 
-  /// Add pause time
-  void pause() {
-    pauseTimes.add(DateTime.now());
-    wasInterrupted = true;
+  /// Serialize to JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type.name,
+      'startTime': startTime.toIso8601String(),
+      'plannedDuration': plannedDuration.inMilliseconds,
+      'endTime': endTime?.toIso8601String(),
+      'actualDuration': actualDuration.inMilliseconds,
+      'wasCompleted': wasCompleted,
+      'xpEarned': xpEarned,
+      'taskDescription': taskDescription,
+      'pauseCount': pauseCount,
+    };
   }
 
-  /// Add resume time
-  void resume() {
-    resumeTimes.add(DateTime.now());
-  }
-
-  /// Calculate total pause duration
-  Duration get totalPauseDuration {
-    Duration total = Duration.zero;
-
-    for (int i = 0; i < pauseTimes.length; i++) {
-      DateTime pauseTime = pauseTimes[i];
-      DateTime resumeTime = i < resumeTimes.length 
-          ? resumeTimes[i] 
-          : endTime ?? DateTime.now();
-
-      total += resumeTime.difference(pauseTime);
-    }
-
-    return total;
-  }
-
-  /// Get effective work duration (excluding pauses)
-  Duration get effectiveDuration {
-    if (actualDuration == null) return Duration.zero;
-    return actualDuration! - totalPauseDuration;
-  }
-
-  /// Get session progress (0.0 to 1.0)
-  double get progress {
-    if (completed) return 1.0;
-
-    final now = DateTime.now();
-    final elapsed = now.difference(startTime) - totalPauseDuration;
-    return (elapsed.inMilliseconds / plannedDuration.inMilliseconds).clamp(0.0, 1.0);
-  }
-
-  /// Get remaining time
-  Duration get remainingTime {
-    if (completed) return Duration.zero;
-
-    final elapsed = effectiveDuration;
-    final remaining = plannedDuration - elapsed;
-    return remaining.isNegative ? Duration.zero : remaining;
-  }
-
-  /// Check if session is currently active
-  bool get isActive {
-    return !completed && endTime == null;
-  }
-
-  /// Check if session is paused
-  bool get isPaused {
-    return isActive && pauseTimes.length > resumeTimes.length;
-  }
-
-  /// Get building type that this session creates
-  String get buildingType {
-    switch (type) {
-      case 'work':
-        return 'office';
-      case 'study':
-        return 'library';
-      case 'creative':
-        return 'studio';
-      default:
-        return 'office';
-    }
-  }
-
-  /// Get session type color
-  String get typeColor {
-    switch (type) {
-      case 'work':
-        return '#1CB0F6'; // Blue
-      case 'study':
-        return '#58CC02'; // Green
-      case 'creative':
-        return '#FF9600'; // Orange
-      default:
-        return '#1CB0F6';
-    }
+  /// Deserialize from JSON
+  factory SessionModel.fromJson(Map<String, dynamic> json) {
+    return SessionModel(
+      id: json['id'] as String,
+      type: SessionType.values.firstWhere(
+        (e) => e.name == json['type'],
+        orElse: () => SessionType.focus,
+      ),
+      startTime: DateTime.parse(json['startTime'] as String),
+      plannedDuration: Duration(milliseconds: json['plannedDuration'] as int),
+      endTime: json['endTime'] != null ? DateTime.parse(json['endTime'] as String) : null,
+      actualDuration: Duration(milliseconds: json['actualDuration'] as int? ?? 0),
+      wasCompleted: json['wasCompleted'] as bool? ?? false,
+      xpEarned: json['xpEarned'] as int? ?? 0,
+      taskDescription: json['taskDescription'] as String?,
+      pauseCount: json['pauseCount'] as int? ?? 0,
+    );
   }
 
   @override
   String toString() {
-    return 'SessionModel(type: \$type, duration: \$plannedDuration, completed: \$completed)';
-  }
-}
-
-/// Session statistics helper
-class SessionStats {
-  static Map<String, dynamic> calculateDailyStats(List<SessionModel> sessions) {
-    final today = DateTime.now();
-    final todaySessions = sessions.where((s) => 
-      s.startTime.day == today.day &&
-      s.startTime.month == today.month &&
-      s.startTime.year == today.year
-    ).toList();
-
-    final completedToday = todaySessions.where((s) => s.completed).toList();
-    final totalDuration = completedToday.fold<Duration>(
-      Duration.zero,
-      (sum, session) => sum + (session.actualDuration ?? Duration.zero),
-    );
-
-    return {
-      'totalSessions': todaySessions.length,
-      'completedSessions': completedToday.length,
-      'totalDuration': totalDuration,
-      'averageDuration': completedToday.isEmpty 
-          ? Duration.zero 
-          : Duration(milliseconds: totalDuration.inMilliseconds ~/ completedToday.length),
-      'totalXp': completedToday.fold<int>(0, (sum, session) => sum + session.xpEarned),
-    };
-  }
-
-  static Map<String, dynamic> calculateWeeklyStats(List<SessionModel> sessions) {
-    final now = DateTime.now();
-    final weekStart = now.subtract(Duration(days: now.weekday - 1));
-    final weekSessions = sessions.where((s) => s.startTime.isAfter(weekStart)).toList();
-
-    final completedWeek = weekSessions.where((s) => s.completed).toList();
-    final totalDuration = completedWeek.fold<Duration>(
-      Duration.zero,
-      (sum, session) => sum + (session.actualDuration ?? Duration.zero),
-    );
-
-    return {
-      'totalSessions': weekSessions.length,
-      'completedSessions': completedWeek.length,
-      'totalDuration': totalDuration,
-      'totalXp': completedWeek.fold<int>(0, (sum, session) => sum + session.xpEarned),
-      'dailyAverage': completedWeek.length / 7,
-    };
+    return 'SessionModel(type: ${type.name}, duration: $plannedDuration, completed: $wasCompleted)';
   }
 }

@@ -48,7 +48,7 @@ class AppTheme {
       ),
 
       // Card Theme
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: AppDimensions.cardElevation,
         color: AppColors.surface,
         shadowColor: AppColors.shadowLight,
@@ -149,11 +149,11 @@ class AppTheme {
         fillColor: AppColors.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-          borderSide: const BorderSide(color: AppColors.textLight),
+          borderSide: const BorderSide(color: AppColors.border, width: 1.5),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-          borderSide: const BorderSide(color: AppColors.textLight),
+          borderSide: const BorderSide(color: AppColors.border, width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
@@ -225,7 +225,7 @@ class AppTheme {
       ),
 
       // Card Theme (Dark)
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: AppDimensions.cardElevation,
         color: AppColors.surfaceDark,
         shadowColor: AppColors.shadowDark,

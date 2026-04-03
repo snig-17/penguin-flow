@@ -2,6 +2,23 @@ import 'package:hive/hive.dart';
 
 part 'user_model.g.dart';
 
+/// Enum for island themes
+@HiveType(typeId: 10)
+enum IslandTheme {
+  @HiveField(0)
+  arctic,
+  @HiveField(1)
+  tropical,
+  @HiveField(2)
+  forest,
+  @HiveField(3)
+  desert,
+  @HiveField(4)
+  volcanic,
+  @HiveField(5)
+  crystal,
+}
+
 /// User data model for PenguinFlow
 /// Stores user profile, progress, and preferences
 @HiveType(typeId: 0)
@@ -13,46 +30,46 @@ class UserModel extends HiveObject {
   late String name;
 
   @HiveField(2)
-  late String penguinName;
+  late String email;
 
   @HiveField(3)
-  late int totalXp;
+  late String avatarPath;
 
   @HiveField(4)
-  late int completedSessions;
+  late int level;
 
   @HiveField(5)
-  late int currentStreak;
+  late int totalXP;
 
   @HiveField(6)
-  late int longestStreak;
+  late int currentStreak;
 
   @HiveField(7)
-  late DateTime lastSessionDate;
+  late int longestStreak;
 
   @HiveField(8)
-  late DateTime createdAt;
+  late int completedSessions;
 
   @HiveField(9)
-  late Duration totalFocusTime;
+  late int totalFocusTime; // in minutes
 
   @HiveField(10)
-  late List<String> unlockedAchievements;
+  late DateTime joinDate;
 
   @HiveField(11)
-  late Map<String, int> sessionsByType;
+  DateTime? lastActivityDate;
 
   @HiveField(12)
-  late int islandLevel;
+  late int friendsCount;
 
   @HiveField(13)
-  late List<String> islandBuildings;
+  late IslandTheme islandTheme;
 
   @HiveField(14)
-  late bool soundEnabled;
+  late bool notificationsEnabled;
 
   @HiveField(15)
-  late bool notificationsEnabled;
+  late bool soundEnabled;
 
   @HiveField(16)
   late bool darkModeEnabled;
@@ -60,170 +77,117 @@ class UserModel extends HiveObject {
   UserModel({
     required this.id,
     required this.name,
-    required this.penguinName,
-    this.totalXp = 0,
-    this.completedSessions = 0,
+    this.email = '',
+    this.avatarPath = 'assets/images/penguin_default.png',
+    this.level = 1,
+    this.totalXP = 0,
     this.currentStreak = 0,
     this.longestStreak = 0,
-    DateTime? lastSessionDate,
-    DateTime? createdAt,
-    Duration? totalFocusTime,
-    List<String>? unlockedAchievements,
-    Map<String, int>? sessionsByType,
-    this.islandLevel = 1,
-    List<String>? islandBuildings,
-    this.soundEnabled = true,
+    this.completedSessions = 0,
+    this.totalFocusTime = 0,
+    DateTime? joinDate,
+    this.lastActivityDate,
+    this.friendsCount = 0,
+    this.islandTheme = IslandTheme.arctic,
     this.notificationsEnabled = true,
+    this.soundEnabled = true,
     this.darkModeEnabled = false,
   }) {
-    this.lastSessionDate = lastSessionDate ?? DateTime.now();
-    this.createdAt = createdAt ?? DateTime.now();
-    this.totalFocusTime = totalFocusTime ?? Duration.zero;
-    this.unlockedAchievements = unlockedAchievements ?? [];
-    this.sessionsByType = sessionsByType ?? {
-      'work': 0,
-      'study': 0,
-      'creative': 0,
-    };
-    this.islandBuildings = islandBuildings ?? [];
+    this.joinDate = joinDate ?? DateTime.now();
   }
 
-  /// Calculate current level from total XP
-  int get currentLevel {
-    int level = 1;
-    int requiredXp = 100;
-    int totalRequired = 0;
-
-    while (totalXp >= totalRequired + requiredXp) {
-      totalRequired += requiredXp;
-      level++;
-      requiredXp = (level * 100) + (level * level * 50);
-    }
-
-    return level;
+  /// Create a copy of this model with updated fields
+  UserModel copyWith({
+    String? id,
+    String? name,
+    String? email,
+    String? avatarPath,
+    int? level,
+    int? totalXP,
+    int? currentStreak,
+    int? longestStreak,
+    int? completedSessions,
+    int? totalFocusTime,
+    DateTime? joinDate,
+    DateTime? lastActivityDate,
+    int? friendsCount,
+    IslandTheme? islandTheme,
+    bool? notificationsEnabled,
+    bool? soundEnabled,
+    bool? darkModeEnabled,
+  }) {
+    return UserModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      avatarPath: avatarPath ?? this.avatarPath,
+      level: level ?? this.level,
+      totalXP: totalXP ?? this.totalXP,
+      currentStreak: currentStreak ?? this.currentStreak,
+      longestStreak: longestStreak ?? this.longestStreak,
+      completedSessions: completedSessions ?? this.completedSessions,
+      totalFocusTime: totalFocusTime ?? this.totalFocusTime,
+      joinDate: joinDate ?? this.joinDate,
+      lastActivityDate: lastActivityDate ?? this.lastActivityDate,
+      friendsCount: friendsCount ?? this.friendsCount,
+      islandTheme: islandTheme ?? this.islandTheme,
+      notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+      soundEnabled: soundEnabled ?? this.soundEnabled,
+      darkModeEnabled: darkModeEnabled ?? this.darkModeEnabled,
+    );
   }
 
-  /// Calculate XP needed for next level
-  int get xpForNextLevel {
-    final nextLevel = currentLevel + 1;
-    return (nextLevel * 100) + (nextLevel * nextLevel * 50);
-  }
-
-  /// Calculate current level progress (0.0 to 1.0)
-  double get levelProgress {
-    int level = 1;
-    int xpUsed = 0;
-
-    while (true) {
-      final levelXp = (level * 100) + (level * level * 50);
-      if (xpUsed + levelXp > totalXp) {
-        final progressXp = totalXp - xpUsed;
-        return progressXp / levelXp;
-      }
-      xpUsed += levelXp;
-      level++;
-    }
-  }
-
-  /// Add XP and return if level increased
-  bool addXp(int xp) {
-    final oldLevel = currentLevel;
-    totalXp += xp;
-    return currentLevel > oldLevel;
-  }
-
-  /// Complete a session with given type and duration
-  void completeSession(String sessionType, Duration duration) {
-    completedSessions++;
-    totalFocusTime += duration;
-    sessionsByType[sessionType] = (sessionsByType[sessionType] ?? 0) + 1;
-
-    // Update streak
-    final now = DateTime.now();
-    final daysSinceLastSession = now.difference(lastSessionDate).inDays;
-
-    if (daysSinceLastSession <= 1) {
-      if (daysSinceLastSession == 1) {
-        currentStreak++;
-      }
-      // Same day, streak continues
-    } else {
-      // Streak broken
-      currentStreak = 1;
-    }
-
-    longestStreak = longestStreak > currentStreak ? longestStreak : currentStreak;
-    lastSessionDate = now;
-
-    // Calculate XP based on session type and duration
-    int baseXp = (duration.inMinutes * 2).round();
-    int multiplier = 1;
-
-    switch (sessionType) {
-      case 'work':
-        multiplier = 1;
-        break;
-      case 'study':
-        multiplier = 2;
-        break;
-      case 'creative':
-        multiplier = 3;
-        break;
-    }
-
-    addXp(baseXp * multiplier);
-
-    // Add building to island every 5 sessions
-    if (completedSessions % 5 == 0) {
-      islandBuildings.add('\${sessionType}_building_\${islandBuildings.length}');
-    }
-
-    // Level up island every 10 levels
-    final newIslandLevel = (currentLevel / 10).floor() + 1;
-    if (newIslandLevel > islandLevel) {
-      islandLevel = newIslandLevel;
-    }
-  }
-
-  /// Check if user has achievement
-  bool hasAchievement(String achievementId) {
-    return unlockedAchievements.contains(achievementId);
-  }
-
-  /// Unlock achievement
-  void unlockAchievement(String achievementId) {
-    if (!hasAchievement(achievementId)) {
-      unlockedAchievements.add(achievementId);
-    }
-  }
-
-  /// Check if streak is maintained today
-  bool get streakMaintainedToday {
-    final now = DateTime.now();
-    final daysSinceLastSession = now.difference(lastSessionDate).inDays;
-    return daysSinceLastSession <= 1;
-  }
-
-  /// Get achievement progress for display
-  Map<String, dynamic> getAchievementProgress() {
+  /// Serialize to JSON
+  Map<String, dynamic> toJson() {
     return {
-      'first_session': completedSessions >= 1,
-      'streak_7': longestStreak >= 7,
-      'streak_30': longestStreak >= 30,
-      'sessions_10': completedSessions >= 10,
-      'sessions_50': completedSessions >= 50,
-      'sessions_100': completedSessions >= 100,
-      'level_5': currentLevel >= 5,
-      'level_10': currentLevel >= 10,
-      'level_25': currentLevel >= 25,
-      'focus_time_10h': totalFocusTime.inHours >= 10,
-      'focus_time_50h': totalFocusTime.inHours >= 50,
-      'focus_time_100h': totalFocusTime.inHours >= 100,
+      'id': id,
+      'name': name,
+      'email': email,
+      'avatarPath': avatarPath,
+      'level': level,
+      'totalXP': totalXP,
+      'currentStreak': currentStreak,
+      'longestStreak': longestStreak,
+      'completedSessions': completedSessions,
+      'totalFocusTime': totalFocusTime,
+      'joinDate': joinDate.toIso8601String(),
+      'lastActivityDate': lastActivityDate?.toIso8601String(),
+      'friendsCount': friendsCount,
+      'islandTheme': islandTheme.name,
+      'notificationsEnabled': notificationsEnabled,
+      'soundEnabled': soundEnabled,
+      'darkModeEnabled': darkModeEnabled,
     };
+  }
+
+  /// Deserialize from JSON
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    return UserModel(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      email: json['email'] as String? ?? '',
+      avatarPath: json['avatarPath'] as String? ?? 'assets/images/penguin_default.png',
+      level: json['level'] as int? ?? 1,
+      totalXP: json['totalXP'] as int? ?? 0,
+      currentStreak: json['currentStreak'] as int? ?? 0,
+      longestStreak: json['longestStreak'] as int? ?? 0,
+      completedSessions: json['completedSessions'] as int? ?? 0,
+      totalFocusTime: json['totalFocusTime'] as int? ?? 0,
+      joinDate: json['joinDate'] != null ? DateTime.parse(json['joinDate'] as String) : null,
+      lastActivityDate: json['lastActivityDate'] != null ? DateTime.parse(json['lastActivityDate'] as String) : null,
+      friendsCount: json['friendsCount'] as int? ?? 0,
+      islandTheme: IslandTheme.values.firstWhere(
+        (e) => e.name == json['islandTheme'],
+        orElse: () => IslandTheme.arctic,
+      ),
+      notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
+      soundEnabled: json['soundEnabled'] as bool? ?? true,
+      darkModeEnabled: json['darkModeEnabled'] as bool? ?? false,
+    );
   }
 
   @override
   String toString() {
-    return 'UserModel(name: \$name, level: \$currentLevel, xp: \$totalXp, sessions: \$completedSessions)';
+    return 'UserModel(name: $name, level: $level, xp: $totalXP, sessions: $completedSessions)';
   }
 }

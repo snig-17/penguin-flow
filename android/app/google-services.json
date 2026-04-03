@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "331855341668",
+    "project_id": "penguinflow-2fee1",
+    "storage_bucket": "penguinflow-2fee1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:331855341668:android:4142252a7484c9b0a85771",
+        "android_client_info": {
+          "package_name": "com.example.penguinflow"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCUHp_3OaUUjvf6Ft67Sl3sHOv-FJQgzxA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

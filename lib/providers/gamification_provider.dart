@@ -1,24 +1,22 @@
 // lib/providers/gamification_provider.dart
 import 'package:flutter/foundation.dart';
-import '../../../services/gamification_service.dart';
-import '../../../services/storage_service.dart';
-import '../../../models/user_model.dart';
-import '../../../models/achievement_model.dart';
-import '../../../models/session_model.dart';
+import '../services/gamification_service.dart';
+import '../services/storage_service.dart';
+import '../models/user_model.dart';
+import '../models/achievement_model.dart';
+import '../models/session_model.dart';
 
 class GamificationProvider extends ChangeNotifier {
-  final GamificationService _gamificationService;
-  final StorageService _storageService;
+  late final GamificationService _gamificationService;
+  late final StorageService _storageService;
 
   List<AchievementModel> _recentlyUnlocked = [];
   bool _showLevelUpCelebration = false;
   int _previousLevel = 1;
 
-  GamificationProvider({
-    required GamificationService gamificationService,
-    required StorageService storageService,
-  }) : _gamificationService = gamificationService,
-       _storageService = storageService {
+  GamificationProvider() {
+    _storageService = StorageService.instance;
+    _gamificationService = GamificationService(_storageService);
     // Listen to gamification service changes
     _gamificationService.addListener(_onGamificationUpdate);
     _previousLevel = _gamificationService.currentLevel;
@@ -46,38 +44,38 @@ class GamificationProvider extends ChangeNotifier {
   bool get hasCelebrations => _recentlyUnlocked.isNotEmpty || _showLevelUpCelebration;
 
   // Achievement categories
-  List<AchievementModel> get sessionAchievements => 
+  List<AchievementModel> get sessionAchievements =>
       availableAchievements.where((a) => a.category == 'sessions').toList();
 
-  List<AchievementModel> get streakAchievements => 
+  List<AchievementModel> get streakAchievements =>
       availableAchievements.where((a) => a.category == 'streaks').toList();
 
-  List<AchievementModel> get levelAchievements => 
+  List<AchievementModel> get levelAchievements =>
       availableAchievements.where((a) => a.category == 'levels').toList();
 
-  List<AchievementModel> get timeAchievements => 
+  List<AchievementModel> get timeAchievements =>
       availableAchievements.where((a) => a.category == 'time').toList();
 
-  List<AchievementModel> get socialAchievements => 
+  List<AchievementModel> get socialAchievements =>
       availableAchievements.where((a) => a.category == 'social').toList();
 
   // Achievement rarity groups
-  List<AchievementModel> get commonAchievements => 
+  List<AchievementModel> get commonAchievements =>
       unlockedAchievements.where((a) => a.rarity == AchievementRarity.common).toList();
 
-  List<AchievementModel> get rareAchievements => 
+  List<AchievementModel> get rareAchievements =>
       unlockedAchievements.where((a) => a.rarity == AchievementRarity.rare).toList();
 
-  List<AchievementModel> get epicAchievements => 
+  List<AchievementModel> get epicAchievements =>
       unlockedAchievements.where((a) => a.rarity == AchievementRarity.epic).toList();
 
-  List<AchievementModel> get legendaryAchievements => 
+  List<AchievementModel> get legendaryAchievements =>
       unlockedAchievements.where((a) => a.rarity == AchievementRarity.legendary).toList();
 
   // Progress calculations
-  double get overallAchievementProgress => 
-      availableAchievements.isNotEmpty 
-          ? unlockedAchievements.length / availableAchievements.length 
+  double get overallAchievementProgress =>
+      availableAchievements.isNotEmpty
+          ? unlockedAchievements.length / availableAchievements.length
           : 0.0;
 
   Map<String, double> get categoryProgress {
@@ -224,7 +222,6 @@ class GamificationProvider extends ChangeNotifier {
     if (lastActivity == null) return 0;
 
     final now = DateTime.now();
-    final tomorrow = DateTime(now.year, now.month, now.day + 1);
     final daysSinceActivity = now.difference(lastActivity).inDays;
 
     return (1 - daysSinceActivity).clamp(0, 1);
@@ -267,27 +264,27 @@ class GamificationProvider extends ChangeNotifier {
   // Motivational content
   String get motivationalMessage {
     if (currentLevel == 1 && totalSessions == 0) {
-      return 'Welcome to PenguinFlow! Start your first session to begin your journey! 🐧';
+      return 'Welcome to PenguinFlow! Start your first session to begin your journey!';
     }
 
     if (isStreakAtRisk) {
-      return 'Your streak needs attention! Complete a session today to keep it alive! 🔥';
+      return 'Your streak needs attention! Complete a session today to keep it alive!';
     }
 
     if (xpToNextLevel <= 50) {
-      return 'You\'re so close to leveling up! Just \${xpToNextLevel} XP to go! ⭐';
+      return 'You\'re so close to leveling up! Just $xpToNextLevel XP to go!';
     }
 
     if (currentStreak >= 7) {
-      return 'Amazing streak! You\'re building fantastic habits! 💪';
+      return 'Amazing streak! You\'re building fantastic habits!';
     }
 
     final messages = [
-      'Keep up the great work! Every session counts! 🚀',
-      'Your focus journey is inspiring! 🌟',
-      'Consistency is key - you\'re doing great! 📈',
-      'Building habits one session at a time! 🏗️',
-      'Your dedication is paying off! 💎',
+      'Keep up the great work! Every session counts!',
+      'Your focus journey is inspiring!',
+      'Consistency is key - you\'re doing great!',
+      'Building habits one session at a time!',
+      'Your dedication is paying off!',
     ];
 
     return messages[currentLevel % messages.length];
@@ -295,13 +292,13 @@ class GamificationProvider extends ChangeNotifier {
 
   String getNextAchievementHint() {
     final locked = availableAchievements.where((a) => !isAchievementUnlocked(a.id)).toList();
-    if (locked.isEmpty) return 'You\'ve unlocked all achievements! Amazing! 🏆';
+    if (locked.isEmpty) return 'You\'ve unlocked all achievements! Amazing!';
 
     // Find the closest achievement to unlock
     locked.sort((a, b) => a.xpReward.compareTo(b.xpReward));
     final next = locked.first;
 
-    return 'Next up: \${next.title} - \${next.description}';
+    return 'Next up: ${next.title} - ${next.description}';
   }
 
   // Data export for statistics

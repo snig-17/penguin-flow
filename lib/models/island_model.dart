@@ -1,355 +1,262 @@
+import 'dart:ui';
 import 'package:hive/hive.dart';
-import 'dart:math' as math;
+import 'user_model.dart';
 
 part 'island_model.g.dart';
 
-/// Island model representing user's productivity island
-@HiveType(typeId: 3)
-class IslandModel extends HiveObject {
+/// Building type enum
+@HiveType(typeId: 13)
+enum BuildingType {
   @HiveField(0)
-  late String userId;
+  tent,
+  @HiveField(1)
+  cabin,
+  @HiveField(2)
+  workshop,
+  @HiveField(3)
+  lighthouse,
+  @HiveField(4)
+  observatory,
+  @HiveField(5)
+  castle,
+}
+
+/// Building model for island structures
+@HiveType(typeId: 4)
+class Building extends HiveObject {
+  @HiveField(0)
+  late String id;
 
   @HiveField(1)
-  late String name;
+  late BuildingType type;
 
   @HiveField(2)
-  late int level;
+  late double positionX;
 
   @HiveField(3)
-  late List<BuildingModel> buildings;
+  late double positionY;
 
   @HiveField(4)
-  late List<DecorationModel> decorations;
+  late int level;
 
   @HiveField(5)
-  late String theme; // 'tropical', 'arctic', 'volcanic', 'forest'
+  late bool isUnlocked;
 
-  @HiveField(6)
-  late double size; // Island size multiplier
-
-  @HiveField(7)
-  late DateTime lastUpdated;
-
-  @HiveField(8)
-  late Map<String, int> resources;
-
-  @HiveField(9)
-  late bool isPublic;
-
-  IslandModel({
-    required this.userId,
-    required this.name,
+  Building({
+    String? id,
+    required this.type,
+    this.positionX = 0.0,
+    this.positionY = 0.0,
     this.level = 1,
-    List<BuildingModel>? buildings,
-    List<DecorationModel>? decorations,
-    this.theme = 'tropical',
-    this.size = 1.0,
-    DateTime? lastUpdated,
-    Map<String, int>? resources,
-    this.isPublic = true,
+    this.isUnlocked = false,
   }) {
-    this.buildings = buildings ?? [];
-    this.decorations = decorations ?? [];
-    this.lastUpdated = lastUpdated ?? DateTime.now();
-    this.resources = resources ?? {
-      'wood': 0,
-      'stone': 0,
-      'crystal': 0,
-    };
+    this.id = id ?? '${type.name}_${DateTime.now().millisecondsSinceEpoch}';
   }
 
-  /// Add a building to the island
-  void addBuilding(BuildingModel building) {
-    buildings.add(building);
-    lastUpdated = DateTime.now();
+  /// Create a Building with an Offset position
+  factory Building.withPosition({
+    String? id,
+    required BuildingType type,
+    required Offset position,
+    int level = 1,
+    bool isUnlocked = false,
+  }) {
+    return Building(
+      id: id,
+      type: type,
+      positionX: position.dx,
+      positionY: position.dy,
+      level: level,
+      isUnlocked: isUnlocked,
+    );
   }
 
-  /// Add a decoration to the island
-  void addDecoration(DecorationModel decoration) {
-    decorations.add(decoration);
-    lastUpdated = DateTime.now();
-  }
+  Offset get position => Offset(positionX, positionY);
 
-  /// Level up the island
-  void levelUp() {
-    level++;
-    size = 1.0 + (level * 0.1); // Island grows 10% per level
-    lastUpdated = DateTime.now();
-  }
-
-  /// Get total building count
-  int get totalBuildings => buildings.length;
-
-  /// Get buildings by type
-  List<BuildingModel> getBuildingsByType(String type) {
-    return buildings.where((b) => b.type == type).toList();
-  }
-
-  /// Calculate island population (for social features)
-  int get population {
-    return buildings.fold(0, (sum, building) => sum + building.capacity);
-  }
-
-  /// Get island color based on theme
-  String get themeColor {
-    switch (theme) {
-      case 'tropical':
-        return '#4FC3F7'; // Light blue
-      case 'arctic':
-        return '#E1F5FE'; // Ice blue
-      case 'volcanic':
-        return '#FF5722'; // Red orange
-      case 'forest':
-        return '#66BB6A'; // Green
-      default:
-        return '#4FC3F7';
-    }
-  }
-
-  /// Generate random position for new buildings
-  math.Point<double> generateBuildingPosition() {
-    final random = math.Random();
-    final angle = random.nextDouble() * 2 * math.pi;
-    final distance = random.nextDouble() * (size * 100);
-
-    return math.Point(
-      math.cos(angle) * distance,
-      math.sin(angle) * distance,
+  Building copyWith({
+    String? id,
+    BuildingType? type,
+    Offset? position,
+    int? level,
+    bool? isUnlocked,
+  }) {
+    return Building(
+      id: id ?? this.id,
+      type: type ?? this.type,
+      positionX: position?.dx ?? positionX,
+      positionY: position?.dy ?? positionY,
+      level: level ?? this.level,
+      isUnlocked: isUnlocked ?? this.isUnlocked,
     );
   }
 
   @override
   String toString() {
-    return 'IslandModel(name: \$name, level: \$level, buildings: \${buildings.length})';
-  }
-}
-
-/// Building model for island structures
-@HiveType(typeId: 4)
-class BuildingModel extends HiveObject {
-  @HiveField(0)
-  late String id;
-
-  @HiveField(1)
-  late String type; // 'office', 'library', 'studio', 'house'
-
-  @HiveField(2)
-  late String name;
-
-  @HiveField(3)
-  late double x;
-
-  @HiveField(4)
-  late double y;
-
-  @HiveField(5)
-  late int level;
-
-  @HiveField(6)
-  late DateTime builtAt;
-
-  @HiveField(7)
-  late int capacity;
-
-  @HiveField(8)
-  late String sessionType; // Which session type built this
-
-  BuildingModel({
-    required this.id,
-    required this.type,
-    required this.name,
-    required this.x,
-    required this.y,
-    this.level = 1,
-    DateTime? builtAt,
-    this.capacity = 1,
-    required this.sessionType,
-  }) {
-    this.builtAt = builtAt ?? DateTime.now();
-  }
-
-  /// Get building color based on type
-  String get color {
-    switch (type) {
-      case 'office':
-        return '#1CB0F6'; // Blue
-      case 'library':
-        return '#58CC02'; // Green
-      case 'studio':
-        return '#FF9600'; // Orange
-      case 'house':
-        return '#9C27B0'; // Purple
-      default:
-        return '#1CB0F6';
-    }
-  }
-
-  /// Get building icon
-  String get icon {
-    switch (type) {
-      case 'office':
-        return 'business';
-      case 'library':
-        return 'local_library';
-      case 'studio':
-        return 'palette';
-      case 'house':
-        return 'home';
-      default:
-        return 'business';
-    }
-  }
-
-  /// Level up the building
-  void levelUp() {
-    level++;
-    capacity = level;
-  }
-
-  @override
-  String toString() {
-    return 'BuildingModel(type: \$type, level: \$level, position: (\$x, \$y))';
+    return 'Building(type: ${type.name}, level: $level, position: ($positionX, $positionY))';
   }
 }
 
 /// Decoration model for island aesthetics
 @HiveType(typeId: 5)
-class DecorationModel extends HiveObject {
+class Decoration extends HiveObject {
   @HiveField(0)
   late String id;
 
   @HiveField(1)
-  late String type; // 'tree', 'flower', 'rock', 'fountain'
+  late String type;
 
   @HiveField(2)
-  late double x;
+  late double positionX;
 
   @HiveField(3)
-  late double y;
+  late double positionY;
 
   @HiveField(4)
-  late double scale;
+  late bool isUnlocked;
 
-  @HiveField(5)
-  late String color;
-
-  @HiveField(6)
-  late DateTime placedAt;
-
-  DecorationModel({
-    required this.id,
+  Decoration({
+    String? id,
     required this.type,
-    required this.x,
-    required this.y,
-    this.scale = 1.0,
-    this.color = '#66BB6A',
-    DateTime? placedAt,
+    this.positionX = 0.0,
+    this.positionY = 0.0,
+    this.isUnlocked = false,
   }) {
-    this.placedAt = placedAt ?? DateTime.now();
+    this.id = id ?? '${type}_${DateTime.now().millisecondsSinceEpoch}';
   }
 
-  /// Get decoration icon
-  String get icon {
-    switch (type) {
-      case 'tree':
-        return 'park';
-      case 'flower':
-        return 'local_florist';
-      case 'rock':
-        return 'landscape';
-      case 'fountain':
-        return 'water_drop';
-      default:
-        return 'park';
-    }
+  /// Create a Decoration with an Offset position
+  factory Decoration.withPosition({
+    String? id,
+    required String type,
+    required Offset position,
+    bool isUnlocked = false,
+  }) {
+    return Decoration(
+      id: id,
+      type: type,
+      positionX: position.dx,
+      positionY: position.dy,
+      isUnlocked: isUnlocked,
+    );
+  }
+
+  Offset get position => Offset(positionX, positionY);
+
+  Decoration copyWith({
+    String? id,
+    String? type,
+    Offset? position,
+    bool? isUnlocked,
+  }) {
+    return Decoration(
+      id: id ?? this.id,
+      type: type ?? this.type,
+      positionX: position?.dx ?? positionX,
+      positionY: position?.dy ?? positionY,
+      isUnlocked: isUnlocked ?? this.isUnlocked,
+    );
   }
 
   @override
   String toString() {
-    return 'DecorationModel(type: \$type, position: (\$x, \$y))';
+    return 'Decoration(type: $type, position: ($positionX, $positionY))';
   }
 }
 
-/// Friend island model for social features
-class FriendIsland {
-  final String userId;
-  final String userName;
-  final String penguinName;
-  final IslandModel island;
-  final bool isOnline;
-  final DateTime lastSeen;
-  final int friendshipLevel;
+/// Island model representing user's productivity island
+@HiveType(typeId: 3)
+class IslandModel extends HiveObject {
+  @HiveField(0)
+  late String id;
 
-  FriendIsland({
-    required this.userId,
-    required this.userName,
-    required this.penguinName,
-    required this.island,
-    required this.isOnline,
-    required this.lastSeen,
-    this.friendshipLevel = 1,
-  });
+  @HiveField(1)
+  late String ownerName;
 
-  /// Generate mock friend islands for demo
-  static List<FriendIsland> generateMockFriends(int count) {
-    final friends = <FriendIsland>[];
-    final random = math.Random();
+  @HiveField(2)
+  late int themeIndex; // stored as int for Hive
 
-    final names = [
-      'Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank', 'Grace', 'Henry',
-      'Iris', 'Jack', 'Kate', 'Liam', 'Maya', 'Noah', 'Olivia', 'Peter'
-    ];
+  @HiveField(3)
+  late List<Building> buildings;
 
-    final penguinNames = [
-      'Waddles', 'Flipper', 'Snowball', 'Arctic', 'Frosty', 'Crystal',
-      'Blizzard', 'Pepper', 'Sunny', 'Storm', 'Chill', 'Zippy'
-    ];
+  @HiveField(4)
+  late List<Decoration> decorations;
 
-    for (int i = 0; i < count; i++) {
-      final userName = names[random.nextInt(names.length)];
-      final penguinName = penguinNames[random.nextInt(penguinNames.length)];
-      final level = random.nextInt(20) + 1;
-      final buildingCount = random.nextInt(15) + 1;
+  @HiveField(5)
+  late int totalFocusTime; // in minutes
 
-      final island = IslandModel(
-        userId: 'friend_\$i',
-        name: '\$userName\'s Island',
-        level: level,
-        theme: ['tropical', 'arctic', 'volcanic', 'forest'][random.nextInt(4)],
-        size: 1.0 + (level * 0.05),
-      );
+  @HiveField(6)
+  late DateTime lastUpdated;
 
-      // Add random buildings
-      for (int j = 0; j < buildingCount; j++) {
-        final position = island.generateBuildingPosition();
-        final types = ['office', 'library', 'studio', 'house'];
-        final sessionTypes = ['work', 'study', 'creative'];
+  IslandModel({
+    required this.id,
+    required this.ownerName,
+    IslandTheme theme = IslandTheme.arctic,
+    List<Building>? buildings,
+    List<Decoration>? decorations,
+    this.totalFocusTime = 0,
+    DateTime? lastUpdated,
+    int? themeIndex,
+  }) {
+    this.themeIndex = themeIndex ?? theme.index;
+    this.buildings = buildings ?? [];
+    this.decorations = decorations ?? [];
+    this.lastUpdated = lastUpdated ?? DateTime.now();
+  }
 
-        island.addBuilding(BuildingModel(
-          id: 'building_\${j}',
-          type: types[random.nextInt(types.length)],
-          name: 'Building \${j + 1}',
-          x: position.x,
-          y: position.y,
-          level: random.nextInt(3) + 1,
-          sessionType: sessionTypes[random.nextInt(sessionTypes.length)],
-        ));
-      }
+  IslandTheme get theme => IslandTheme.values[themeIndex];
+  set theme(IslandTheme value) => themeIndex = value.index;
 
-      friends.add(FriendIsland(
-        userId: 'friend_\$i',
-        userName: userName,
-        penguinName: penguinName,
-        island: island,
-        isOnline: random.nextBool(),
-        lastSeen: DateTime.now().subtract(Duration(
-          hours: random.nextInt(24),
-          minutes: random.nextInt(60),
-        )),
-        friendshipLevel: random.nextInt(5) + 1,
-      ));
-    }
+  IslandModel copyWith({
+    String? id,
+    String? ownerName,
+    IslandTheme? theme,
+    List<Building>? buildings,
+    List<Decoration>? decorations,
+    int? totalFocusTime,
+    DateTime? lastUpdated,
+  }) {
+    return IslandModel(
+      id: id ?? this.id,
+      ownerName: ownerName ?? this.ownerName,
+      theme: theme ?? this.theme,
+      buildings: buildings ?? this.buildings,
+      decorations: decorations ?? this.decorations,
+      totalFocusTime: totalFocusTime ?? this.totalFocusTime,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+    );
+  }
 
-    return friends;
+  /// Serialize to JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'ownerName': ownerName,
+      'theme': theme.name,
+      'totalFocusTime': totalFocusTime,
+      'lastUpdated': lastUpdated.toIso8601String(),
+      'buildingCount': buildings.length,
+      'decorationCount': decorations.length,
+    };
+  }
+
+  /// Deserialize from JSON
+  factory IslandModel.fromJson(Map<String, dynamic> json) {
+    return IslandModel(
+      id: json['id'] as String? ?? '',
+      ownerName: json['ownerName'] as String? ?? '',
+      theme: IslandTheme.values.firstWhere(
+        (e) => e.name == json['theme'],
+        orElse: () => IslandTheme.arctic,
+      ),
+      totalFocusTime: json['totalFocusTime'] as int? ?? 0,
+      lastUpdated: json['lastUpdated'] != null
+          ? DateTime.parse(json['lastUpdated'] as String)
+          : null,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'IslandModel(owner: $ownerName, theme: ${theme.name}, buildings: ${buildings.length})';
   }
 }

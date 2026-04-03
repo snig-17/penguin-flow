@@ -3,24 +3,23 @@ import 'package:flutter/foundation.dart';
 import '../services/timer_service.dart';
 import '../services/gamification_service.dart';
 import '../services/island_service.dart';
+import '../services/storage_service.dart';
 import '../models/session_model.dart';
 import '../models/achievement_model.dart';
 
 class TimerProvider extends ChangeNotifier {
-  final TimerService _timerService;
-  final GamificationService _gamificationService;
-  final IslandService _islandService;
+  late final TimerService _timerService;
+  late final GamificationService _gamificationService;
+  late final IslandService _islandService;
 
   List<AchievementModel> _newAchievements = [];
   bool _showCelebration = false;
 
-  TimerProvider({
-    required TimerService timerService,
-    required GamificationService gamificationService,
-    required IslandService islandService,
-  }) : _timerService = timerService,
-       _gamificationService = gamificationService,
-       _islandService = islandService {
+  TimerProvider() {
+    final storageService = StorageService.instance;
+    _timerService = TimerService();
+    _gamificationService = GamificationService(storageService);
+    _islandService = IslandService(storageService);
     // Listen to timer service changes
     _timerService.addListener(_onTimerUpdate);
   }
@@ -137,7 +136,7 @@ class TimerProvider extends ChangeNotifier {
       duration: 25,
       type: SessionType.focus,
       xpReward: 50,
-      icon: '🍅',
+      icon: 'timer',
     ),
     SessionPreset(
       name: 'Short Break',
@@ -145,7 +144,7 @@ class TimerProvider extends ChangeNotifier {
       duration: 5,
       type: SessionType.shortBreak,
       xpReward: 10,
-      icon: '☕',
+      icon: 'coffee',
     ),
     SessionPreset(
       name: 'Long Break',
@@ -153,7 +152,7 @@ class TimerProvider extends ChangeNotifier {
       duration: 15,
       type: SessionType.longBreak,
       xpReward: 25,
-      icon: '🧘',
+      icon: 'self_improvement',
     ),
     SessionPreset(
       name: 'Deep Work',
@@ -161,7 +160,7 @@ class TimerProvider extends ChangeNotifier {
       duration: 90,
       type: SessionType.deepWork,
       xpReward: 200,
-      icon: '🎯',
+      icon: 'target',
     ),
   ];
 
@@ -198,15 +197,15 @@ class TimerProvider extends ChangeNotifier {
     }
 
     if (remainingMinutes > 20) {
-      return 'You\'ve got this! Strong start! 💪';
+      return 'You\'ve got this! Strong start!';
     } else if (remainingMinutes > 10) {
-      return 'Great progress! Keep the momentum! 🚀';
+      return 'Great progress! Keep the momentum!';
     } else if (remainingMinutes > 5) {
-      return 'You\'re in the zone! Almost there! 🔥';
+      return 'You\'re in the zone! Almost there!';
     } else if (remainingMinutes > 1) {
-      return 'Final push! You\'re doing amazing! ⭐';
+      return 'Final push! You\'re doing amazing!';
     } else {
-      return 'Last minute! Finish strong! 🏆';
+      return 'Last minute! Finish strong!';
     }
   }
 

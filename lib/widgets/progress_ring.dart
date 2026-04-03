@@ -104,7 +104,7 @@ class _ProgressRingState extends State<ProgressRing>
     final theme = Theme.of(context);
     final progressColor = widget.progressColor ?? AppColors.primary;
     final backgroundColor = widget.backgroundColor ?? 
-        AppColors.surfaceVariant.withOpacity(0.3);
+        AppColors.lightGrey.withOpacity(0.3);
 
     return SizedBox(
       width: widget.size,
@@ -221,7 +221,7 @@ class TimerProgressRing extends StatelessWidget {
       size: size,
       strokeWidth: 12.0,
       progressColor: progressColor,
-      backgroundColor: AppColors.surfaceVariant.withOpacity(0.2),
+      backgroundColor: AppColors.lightGrey.withOpacity(0.2),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

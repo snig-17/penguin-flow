@@ -1,20 +1,21 @@
 // lib/providers/island_provider.dart
+import 'dart:ui';
 import 'package:flutter/foundation.dart';
-import '../../../services/island_service.dart';
-import '../../../models/island_model.dart';
-import '../../../models/user_model.dart';
+import '../services/island_service.dart';
+import '../services/storage_service.dart';
+import '../models/island_model.dart';
+import '../models/user_model.dart';
 
 class IslandProvider extends ChangeNotifier {
-  final IslandService _islandService;
+  late final IslandService _islandService;
 
   bool _isEditMode = false;
   String? _selectedBuildingId;
   String? _selectedDecorationId;
   bool _showBuildingInfo = false;
 
-  IslandProvider({
-    required IslandService islandService,
-  }) : _islandService = islandService {
+  IslandProvider() {
+    _islandService = IslandService(StorageService.instance);
     // Listen to island service changes
     _islandService.addListener(_onIslandUpdate);
   }
@@ -45,7 +46,7 @@ class IslandProvider extends ChangeNotifier {
   Map<String, dynamic> get islandStats => _islandService.getIslandStats();
   int get buildingCount => buildings.length;
   int get decorationCount => decorations.length;
-  double get completionPercentage => islandStats['completionPercentage'] ?? 0.0;
+  double get completionPercentage => (islandStats['completionPercentage'] as num?)?.toDouble() ?? 0.0;
 
   // Available content
   List<BuildingType> get availableBuildings => _islandService.getAvailableBuildings(totalFocusTime);
@@ -241,14 +242,14 @@ class IslandProvider extends ChangeNotifier {
 
   String getFormattedUnlockTime(int minutes) {
     if (minutes < 60) {
-      return '\${minutes}m';
+      return '${minutes}m';
     } else {
       final hours = minutes ~/ 60;
       final remainingMinutes = minutes % 60;
       if (remainingMinutes == 0) {
-        return '\${hours}h';
+        return '${hours}h';
       } else {
-        return '\${hours}h \${remainingMinutes}m';
+        return '${hours}h ${remainingMinutes}m';
       }
     }
   }
@@ -267,7 +268,7 @@ class IslandProvider extends ChangeNotifier {
         .reduce((a, b) => getBuildingUnlockTime(a) < getBuildingUnlockTime(b) ? a : b);
 
     final requiredTime = getBuildingUnlockTime(nextBuilding);
-    return (totalFocusTime / requiredTime).clamp(0.0, 1.0);
+    return requiredTime > 0 ? (totalFocusTime / requiredTime).clamp(0.0, 1.0) : 1.0;
   }
 
   BuildingType? get nextBuildingToUnlock {
@@ -340,9 +341,9 @@ class IslandProvider extends ChangeNotifier {
     final minutes = totalFocusTime % 60;
 
     if (hours > 0) {
-      return '\${hours}h \${minutes}m';
+      return '${hours}h ${minutes}m';
     } else {
-      return '\${minutes}m';
+      return '${minutes}m';
     }
   }
 
@@ -353,11 +354,11 @@ class IslandProvider extends ChangeNotifier {
     final difference = now.difference(lastUpdated!);
 
     if (difference.inDays > 0) {
-      return '\${difference.inDays} day\${difference.inDays > 1 ? 's' : ''} ago';
+      return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
     } else if (difference.inHours > 0) {
-      return '\${difference.inHours} hour\${difference.inHours > 1 ? 's' : ''} ago';
+      return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
     } else if (difference.inMinutes > 0) {
-      return '\${difference.inMinutes} minute\${difference.inMinutes > 1 ? 's' : ''} ago';
+      return '${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''} ago';
     } else {
       return 'Just now';
     }
