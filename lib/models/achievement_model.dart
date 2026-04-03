@@ -1,308 +1,114 @@
-import 'package:hive/hive.dart';
+import 'package:flutter/material.dart';
 
-part 'achievement_model.g.dart';
+enum AchievementRarity { common, rare, epic, legendary }
 
-/// Achievement model for PenguinFlow gamification
-@HiveType(typeId: 2)
-class AchievementModel extends HiveObject {
-  @HiveField(0)
-  late String id;
+enum AchievementCategory { sessions, streaks, level, time, special }
 
-  @HiveField(1)
-  late String title;
-
-  @HiveField(2)
-  late String description;
-
-  @HiveField(3)
-  late String icon;
-
-  @HiveField(4)
-  late int xpReward;
-
-  @HiveField(5)
-  late String category; // 'streak', 'sessions', 'level', 'time'
-
-  @HiveField(6)
-  late int requirement;
-
-  @HiveField(7)
-  late bool isUnlocked;
-
-  @HiveField(8)
-  late DateTime? unlockedAt;
-
-  @HiveField(9)
-  late int rarity; // 1=common, 2=rare, 3=epic, 4=legendary
+class AchievementModel {
+  final String id;
+  final String title;
+  final String description;
+  final String icon;
+  final AchievementRarity rarity;
+  final AchievementCategory category;
+  final int xpReward;
+  final int requirement;
+  bool unlocked;
+  DateTime? unlockedAt;
 
   AchievementModel({
     required this.id,
     required this.title,
     required this.description,
-    required this.icon,
-    required this.xpReward,
-    required this.category,
-    required this.requirement,
-    this.isUnlocked = false,
+    this.icon = '🏆',
+    this.rarity = AchievementRarity.common,
+    this.category = AchievementCategory.sessions,
+    this.xpReward = 100,
+    this.requirement = 1,
+    this.unlocked = false,
     this.unlockedAt,
-    this.rarity = 1,
   });
 
-  /// Get rarity color
-  String get rarityColor {
-    switch (rarity) {
-      case 1:
-        return '#9E9E9E'; // Gray
-      case 2:
-        return '#2196F3'; // Blue
-      case 3:
-        return '#9C27B0'; // Purple
-      case 4:
-        return '#FF9600'; // Gold
-      default:
-        return '#9E9E9E';
-    }
-  }
+  Color get rarityColor => switch (rarity) {
+        AchievementRarity.common => const Color(0xFF777777),
+        AchievementRarity.rare => const Color(0xFF1CB0F6),
+        AchievementRarity.epic => const Color(0xFFCE82FF),
+        AchievementRarity.legendary => const Color(0xFFFF9600),
+      };
 
-  /// Get rarity name
-  String get rarityName {
-    switch (rarity) {
-      case 1:
-        return 'Common';
-      case 2:
-        return 'Rare';
-      case 3:
-        return 'Epic';
-      case 4:
-        return 'Legendary';
-      default:
-        return 'Common';
-    }
-  }
+  String get rarityLabel => switch (rarity) {
+        AchievementRarity.common => 'Common',
+        AchievementRarity.rare => 'Rare',
+        AchievementRarity.epic => 'Epic',
+        AchievementRarity.legendary => 'Legendary',
+      };
 
-  /// Unlock the achievement
   void unlock() {
-    isUnlocked = true;
+    unlocked = true;
     unlockedAt = DateTime.now();
   }
 
-  @override
-  String toString() {
-    return 'AchievementModel(id: \$id, title: \$title, unlocked: \$isUnlocked)';
-  }
-}
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'description': description,
+        'icon': icon,
+        'rarity': rarity.name,
+        'category': category.name,
+        'xpReward': xpReward,
+        'requirement': requirement,
+        'unlocked': unlocked,
+        'unlockedAt': unlockedAt?.toIso8601String(),
+      };
 
-/// Predefined achievements for PenguinFlow
-class Achievements {
-  static List<AchievementModel> getDefaultAchievements() {
-    return [
-      // First session achievements
+  factory AchievementModel.fromJson(Map<String, dynamic> json) =>
       AchievementModel(
-        id: 'first_session',
-        title: 'First Steps',
-        description: 'Complete your first focus session',
-        icon: 'play_circle_fill',
-        xpReward: 50,
-        category: 'sessions',
-        requirement: 1,
-        rarity: 1,
-      ),
+        id: json['id'] as String,
+        title: json['title'] as String,
+        description: json['description'] as String,
+        icon: json['icon'] as String? ?? '🏆',
+        rarity: AchievementRarity.values.firstWhere(
+          (e) => e.name == json['rarity'],
+          orElse: () => AchievementRarity.common,
+        ),
+        category: AchievementCategory.values.firstWhere(
+          (e) => e.name == json['category'],
+          orElse: () => AchievementCategory.sessions,
+        ),
+        xpReward: json['xpReward'] as int? ?? 100,
+        requirement: json['requirement'] as int? ?? 1,
+        unlocked: json['unlocked'] as bool? ?? false,
+        unlockedAt: json['unlockedAt'] != null
+            ? DateTime.parse(json['unlockedAt'] as String)
+            : null,
+      );
 
-      // Session count achievements
-      AchievementModel(
-        id: 'sessions_10',
-        title: 'Getting Started',
-        description: 'Complete 10 focus sessions',
-        icon: 'psychology',
-        xpReward: 100,
-        category: 'sessions',
-        requirement: 10,
-        rarity: 1,
-      ),
-      AchievementModel(
-        id: 'sessions_50',
-        title: 'Focused Mind',
-        description: 'Complete 50 focus sessions',
-        icon: 'psychology',
-        xpReward: 250,
-        category: 'sessions',
-        requirement: 50,
-        rarity: 2,
-      ),
-      AchievementModel(
-        id: 'sessions_100',
-        title: 'Concentration Master',
-        description: 'Complete 100 focus sessions',
-        icon: 'psychology',
-        xpReward: 500,
-        category: 'sessions',
-        requirement: 100,
-        rarity: 3,
-      ),
-      AchievementModel(
-        id: 'sessions_500',
-        title: 'Focus Legend',
-        description: 'Complete 500 focus sessions',
-        icon: 'psychology',
-        xpReward: 1000,
-        category: 'sessions',
-        requirement: 500,
-        rarity: 4,
-      ),
+  static List<AchievementModel> get allAchievements => [
+        // Sessions
+        AchievementModel(id: 'first_session', title: 'First Steps', description: 'Complete your first focus session', icon: '🎯', category: AchievementCategory.sessions, requirement: 1, xpReward: 50),
+        AchievementModel(id: 'sessions_10', title: 'Getting Started', description: 'Complete 10 focus sessions', icon: '🔥', category: AchievementCategory.sessions, rarity: AchievementRarity.common, requirement: 10, xpReward: 100),
+        AchievementModel(id: 'sessions_50', title: 'Focus Master', description: 'Complete 50 focus sessions', icon: '⚡', category: AchievementCategory.sessions, rarity: AchievementRarity.rare, requirement: 50, xpReward: 250),
+        AchievementModel(id: 'sessions_100', title: 'Century Club', description: 'Complete 100 focus sessions', icon: '💯', category: AchievementCategory.sessions, rarity: AchievementRarity.epic, requirement: 100, xpReward: 500),
+        AchievementModel(id: 'sessions_500', title: 'Unstoppable', description: 'Complete 500 focus sessions', icon: '🏆', category: AchievementCategory.sessions, rarity: AchievementRarity.legendary, requirement: 500, xpReward: 1000),
 
-      // Streak achievements
-      AchievementModel(
-        id: 'streak_7',
-        title: 'Week Warrior',
-        description: 'Maintain a 7-day streak',
-        icon: 'local_fire_department',
-        xpReward: 200,
-        category: 'streak',
-        requirement: 7,
-        rarity: 2,
-      ),
-      AchievementModel(
-        id: 'streak_30',
-        title: 'Month Master',
-        description: 'Maintain a 30-day streak',
-        icon: 'local_fire_department',
-        xpReward: 500,
-        category: 'streak',
-        requirement: 30,
-        rarity: 3,
-      ),
-      AchievementModel(
-        id: 'streak_100',
-        title: 'Streak Legend',
-        description: 'Maintain a 100-day streak',
-        icon: 'local_fire_department',
-        xpReward: 1500,
-        category: 'streak',
-        requirement: 100,
-        rarity: 4,
-      ),
+        // Streaks
+        AchievementModel(id: 'streak_7', title: 'Week Warrior', description: 'Maintain a 7-day streak', icon: '🔥', category: AchievementCategory.streaks, rarity: AchievementRarity.common, requirement: 7, xpReward: 150),
+        AchievementModel(id: 'streak_30', title: 'Monthly Master', description: 'Maintain a 30-day streak', icon: '🌟', category: AchievementCategory.streaks, rarity: AchievementRarity.rare, requirement: 30, xpReward: 500),
+        AchievementModel(id: 'streak_100', title: 'Legendary Focus', description: 'Maintain a 100-day streak', icon: '👑', category: AchievementCategory.streaks, rarity: AchievementRarity.legendary, requirement: 100, xpReward: 2000),
 
-      // Level achievements
-      AchievementModel(
-        id: 'level_5',
-        title: 'Rising Star',
-        description: 'Reach level 5',
-        icon: 'emoji_events',
-        xpReward: 150,
-        category: 'level',
-        requirement: 5,
-        rarity: 1,
-      ),
-      AchievementModel(
-        id: 'level_10',
-        title: 'Island Master',
-        description: 'Reach level 10',
-        icon: 'emoji_events',
-        xpReward: 300,
-        category: 'level',
-        requirement: 10,
-        rarity: 2,
-      ),
-      AchievementModel(
-        id: 'level_25',
-        title: 'Productivity Guru',
-        description: 'Reach level 25',
-        icon: 'emoji_events',
-        xpReward: 750,
-        category: 'level',
-        requirement: 25,
-        rarity: 3,
-      ),
-      AchievementModel(
-        id: 'level_50',
-        title: 'Focus Deity',
-        description: 'Reach level 50',
-        icon: 'emoji_events',
-        xpReward: 2000,
-        category: 'level',
-        requirement: 50,
-        rarity: 4,
-      ),
+        // Time
+        AchievementModel(id: 'time_600', title: 'Time Investor', description: 'Focus for 10 total hours', icon: '⏰', category: AchievementCategory.time, rarity: AchievementRarity.common, requirement: 600, xpReward: 200),
+        AchievementModel(id: 'time_3000', title: 'Dedicated', description: 'Focus for 50 total hours', icon: '⌛', category: AchievementCategory.time, rarity: AchievementRarity.rare, requirement: 3000, xpReward: 500),
+        AchievementModel(id: 'time_6000', title: 'Time Lord', description: 'Focus for 100 total hours', icon: '🕐', category: AchievementCategory.time, rarity: AchievementRarity.epic, requirement: 6000, xpReward: 1000),
 
-      // Time-based achievements
-      AchievementModel(
-        id: 'focus_time_10h',
-        title: 'Time Keeper',
-        description: 'Accumulate 10 hours of focus time',
-        icon: 'schedule',
-        xpReward: 200,
-        category: 'time',
-        requirement: 10,
-        rarity: 2,
-      ),
-      AchievementModel(
-        id: 'focus_time_50h',
-        title: 'Time Master',
-        description: 'Accumulate 50 hours of focus time',
-        icon: 'schedule',
-        xpReward: 500,
-        category: 'time',
-        requirement: 50,
-        rarity: 3,
-      ),
-      AchievementModel(
-        id: 'focus_time_100h',
-        title: 'Time Lord',
-        description: 'Accumulate 100 hours of focus time',
-        icon: 'schedule',
-        xpReward: 1000,
-        category: 'time',
-        requirement: 100,
-        rarity: 4,
-      ),
+        // Level
+        AchievementModel(id: 'level_5', title: 'Rising Star', description: 'Reach level 5', icon: '⭐', category: AchievementCategory.level, rarity: AchievementRarity.common, requirement: 5, xpReward: 100),
+        AchievementModel(id: 'level_10', title: 'Island Expert', description: 'Reach level 10', icon: '🌟', category: AchievementCategory.level, rarity: AchievementRarity.rare, requirement: 10, xpReward: 300),
+        AchievementModel(id: 'level_25', title: 'Master Architect', description: 'Reach level 25', icon: '💫', category: AchievementCategory.level, rarity: AchievementRarity.epic, requirement: 25, xpReward: 750),
 
-      // Special achievements
-      AchievementModel(
-        id: 'early_bird',
-        title: 'Early Bird',
-        description: 'Complete a session before 8 AM',
-        icon: 'wb_sunny',
-        xpReward: 100,
-        category: 'special',
-        requirement: 1,
-        rarity: 2,
-      ),
-      AchievementModel(
-        id: 'night_owl',
-        title: 'Night Owl',
-        description: 'Complete a session after 10 PM',
-        icon: 'bedtime',
-        xpReward: 100,
-        category: 'special',
-        requirement: 1,
-        rarity: 2,
-      ),
-      AchievementModel(
-        id: 'perfect_week',
-        title: 'Perfect Week',
-        description: 'Complete at least one session every day for a week',
-        icon: 'calendar_today',
-        xpReward: 300,
-        category: 'special',
-        requirement: 7,
-        rarity: 3,
-      ),
-    ];
-  }
-
-  /// Check if user has earned an achievement
-  static bool checkAchievement(AchievementModel achievement, Map<String, dynamic> userStats) {
-    switch (achievement.category) {
-      case 'sessions':
-        return userStats['completedSessions'] >= achievement.requirement;
-      case 'streak':
-        return userStats['longestStreak'] >= achievement.requirement;
-      case 'level':
-        return userStats['currentLevel'] >= achievement.requirement;
-      case 'time':
-        return userStats['totalFocusTimeHours'] >= achievement.requirement;
-      default:
-        return false;
-    }
-  }
+        // Special
+        AchievementModel(id: 'early_bird', title: 'Early Bird', description: 'Complete a session before 7 AM', icon: '🌅', category: AchievementCategory.special, rarity: AchievementRarity.rare, requirement: 1, xpReward: 200),
+        AchievementModel(id: 'night_owl', title: 'Night Owl', description: 'Complete a session after 11 PM', icon: '🦉', category: AchievementCategory.special, rarity: AchievementRarity.rare, requirement: 1, xpReward: 200),
+        AchievementModel(id: 'deep_focus', title: 'Deep Focus', description: 'Complete a 60-minute session', icon: '🧠', category: AchievementCategory.special, rarity: AchievementRarity.epic, requirement: 60, xpReward: 300),
+      ];
 }

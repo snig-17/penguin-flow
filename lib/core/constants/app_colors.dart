@@ -1,96 +1,79 @@
 import 'package:flutter/material.dart';
 
-/// Duolingo-inspired color palette for PenguinFlow
-/// Features vibrant, engaging colors that promote productivity and joy
 class AppColors {
-  // Primary Colors - Inspired by Duolingo's green
-  static const Color primary = Color(0xFF58CC02);      // Duolingo green
-  static const Color primaryDark = Color(0xFF46A302);   // Darker green
-  static const Color primaryLight = Color(0xFF6FE817);  // Lighter green
+  AppColors._();
 
-  // Secondary Colors - Vibrant and engaging
-  static const Color secondary = Color(0xFF1CB0F6);     // Duolingo blue
-  static const Color secondaryDark = Color(0xFF1493D4); // Darker blue
-  static const Color accent = Color(0xFFFF9600);        // Orange accent
+  // Primary palette (Duolingo-inspired)
+  static const primary = Color(0xFF58CC02);
+  static const primaryDark = Color(0xFF46A302);
+  static const primaryLight = Color(0xFF89E219);
 
-  // Background Colors
-  static const Color background = Color(0xFFF7F7F7);    // Light gray
-  static const Color backgroundDark = Color(0xFF131F24); // Dark mode bg
-  static const Color surface = Color(0xFFFFFFFF);       // Card surface
-  static const Color surfaceDark = Color(0xFF1E2A2F);   // Dark card surface
+  // Secondary
+  static const secondary = Color(0xFF1CB0F6);
+  static const secondaryDark = Color(0xFF1899D6);
+  static const secondaryLight = Color(0xFF84D8FF);
 
-  // Text Colors
-  static const Color textPrimary = Color(0xFF4B4B4B);   // Dark gray
-  static const Color textSecondary = Color(0xFF777777); // Medium gray
-  static const Color textLight = Color(0xFFAAAAAA);     // Light gray
-  static const Color textWhite = Color(0xFFFFFFFF);     // White
+  // Accent
+  static const accent = Color(0xFFFF9600);
+  static const accentDark = Color(0xFFE88700);
+  static const accentLight = Color(0xFFFFBF60);
 
-  // Status Colors
-  static const Color success = Color(0xFF58CC02);       // Success green
-  static const Color warning = Color(0xFFFF9600);       // Warning orange
-  static const Color error = Color(0xFFFF4B4B);         // Error red
-  static const Color info = Color(0xFF1CB0F6);          // Info blue
+  // Status
+  static const success = Color(0xFF58CC02);
+  static const warning = Color(0xFFFFC800);
+  static const error = Color(0xFFFF4B4B);
+  static const info = Color(0xFF1CB0F6);
 
-  // Gamification Colors
-  static const Color xpBar = Color(0xFF58CC02);         // XP progress
-  static const Color streak = Color(0xFFFF6B35);        // Streak fire
-  static const Color achievement = Color(0xFFFFD23F);   // Achievement gold
-  static const Color level = Color(0xFF9C27B0);         // Level purple
+  // Neutrals
+  static const white = Color(0xFFFFFFFF);
+  static const background = Color(0xFFF7F7F7);
+  static const surface = Color(0xFFFFFFFF);
+  static const surfaceVariant = Color(0xFFE8E8E8);
+  static const card = Color(0xFFFFFFFF);
+  static const border = Color(0xFFE5E5E5);
+  static const textPrimary = Color(0xFF3C3C3C);
+  static const textSecondary = Color(0xFF777777);
+  static const textHint = Color(0xFFAFAFAF);
+  static const dark = Color(0xFF1A1A2E);
 
-  // Island Theme Colors
-  static const Color water = Color(0xFF4FC3F7);         // Ocean blue
-  static const Color sand = Color(0xFFFFE082);          // Beach sand
-  static const Color grass = Color(0xFF66BB6A);         // Island grass
-  static const Color snow = Color(0xFFE1F5FE);          // Snow effects
+  // Dark mode
+  static const darkBackground = Color(0xFF131324);
+  static const darkSurface = Color(0xFF1E1E3A);
+  static const darkCard = Color(0xFF252547);
+  static const darkBorder = Color(0xFF3A3A5C);
 
-  // Social Colors
-  static const Color online = Color(0xFF4CAF50);        // Online status
-  static const Color offline = Color(0xFF9E9E9E);       // Offline status
-  static const Color friend = Color(0xFF2196F3);        // Friend indicator
+  // Island themes
+  static const tropicalSand = Color(0xFFF5DEB3);
+  static const tropicalWater = Color(0xFF00CED1);
+  static const arcticIce = Color(0xFFE0F7FA);
+  static const arcticWater = Color(0xFF4FC3F7);
+  static const volcanicRock = Color(0xFF5D4037);
+  static const volcanicLava = Color(0xFFFF5722);
+  static const forestGreen = Color(0xFF2E7D32);
+  static const forestGround = Color(0xFF8D6E63);
 
-  // Gradient Colors
-  static const List<Color> primaryGradient = [
-    Color(0xFF58CC02),
-    Color(0xFF6FE817),
-  ];
+  // Gradients
+  static const primaryGradient = LinearGradient(
+    colors: [primary, primaryLight],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 
-  static const List<Color> secondaryGradient = [
-    Color(0xFF1CB0F6),
-    Color(0xFF42A5F5),
-  ];
+  static const secondaryGradient = LinearGradient(
+    colors: [secondary, secondaryLight],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 
-  static const List<Color> sunsetGradient = [
-    Color(0xFFFF6B35),
-    Color(0xFFFF9600),
-  ];
+  static const sunsetGradient = LinearGradient(
+    colors: [Color(0xFFFF6B6B), Color(0xFFFF9600), Color(0xFFFFC800)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 
-  static const List<Color> oceanGradient = [
-    Color(0xFF4FC3F7),
-    Color(0xFF29B6F6),
-  ];
-
-  // Shadow Colors
-  static const Color shadowLight = Color(0x1A000000);   // Light shadow
-  static const Color shadowMedium = Color(0x33000000);  // Medium shadow
-  static const Color shadowDark = Color(0x4D000000);    // Dark shadow
-
-  /// Get adaptive color based on brightness
-  static Color adaptive(Color lightColor, Color darkColor, Brightness brightness) {
-    return brightness == Brightness.light ? lightColor : darkColor;
-  }
-
-  /// Get theme-appropriate text color
-  static Color getTextColor(Brightness brightness) {
-    return brightness == Brightness.light ? textPrimary : textWhite;
-  }
-
-  /// Get theme-appropriate background color
-  static Color getBackgroundColor(Brightness brightness) {
-    return brightness == Brightness.light ? background : backgroundDark;
-  }
-
-  /// Get theme-appropriate surface color
-  static Color getSurfaceColor(Brightness brightness) {
-    return brightness == Brightness.light ? surface : surfaceDark;
-  }
+  static const oceanGradient = LinearGradient(
+    colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 }

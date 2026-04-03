@@ -1,177 +1,106 @@
-// lib/services/timer_service.dart
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/foundation.dart';
 import '../models/session_model.dart';
 
 class TimerService extends ChangeNotifier {
   Timer? _timer;
+  SessionModel? _currentSession;
   int _remainingSeconds = 0;
-  int _totalSeconds = 0;
   bool _isRunning = false;
   bool _isPaused = false;
-  SessionModel? _currentSession;
 
-  // Timer states
+  SessionModel? get currentSession => _currentSession;
+  int get remainingSeconds => _remainingSeconds;
   bool get isRunning => _isRunning;
   bool get isPaused => _isPaused;
-  bool get isActive => _isRunning || _isPaused;
-  int get remainingSeconds => _remainingSeconds;
-  int get totalSeconds => _totalSeconds;
-  SessionModel? get currentSession => _currentSession;
+  bool get hasSession => _currentSession != null;
 
-  // Progress calculations
-  double get progress => _totalSeconds > 0 ? 1 - (_remainingSeconds / _totalSeconds) : 0.0;
-  int get elapsedSeconds => _totalSeconds - _remainingSeconds;
+  double get progress {
+    if (_currentSession == null) return 0;
+    final total = _currentSession!.targetMinutes * 60;
+    if (total == 0) return 0;
+    return 1.0 - (_remainingSeconds / total);
+  }
 
-  // Time formatting
   String get formattedTime {
     final minutes = _remainingSeconds ~/ 60;
     final seconds = _remainingSeconds % 60;
-    return '\${minutes.toString().padLeft(2, '0')}:\${seconds.toString().padLeft(2, '0')}';
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
-  String get formattedElapsedTime {
-    final minutes = elapsedSeconds ~/ 60;
-    final seconds = elapsedSeconds % 60;
-    return '\${minutes.toString().padLeft(2, '0')}:\${seconds.toString().padLeft(2, '0')}';
-  }
-
-  // Start a new focus session
   void startSession({
+    required String userId,
     required SessionType type,
-    required int durationMinutes,
-    String? taskDescription,
+    required int minutes,
   }) {
-    if (_isRunning) return;
-
-    _totalSeconds = durationMinutes * 60;
-    _remainingSeconds = _totalSeconds;
     _currentSession = SessionModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      userId: userId,
       type: type,
-      startTime: DateTime.now(),
-      plannedDuration: Duration(minutes: durationMinutes),
-      taskDescription: taskDescription,
+      targetMinutes: minutes,
     );
-
+    _remainingSeconds = minutes * 60;
     _isRunning = true;
     _isPaused = false;
     _startTimer();
     notifyListeners();
   }
 
-  // Resume paused session
-  void resumeSession() {
-    if (!_isPaused || _currentSession == null) return;
-
-    _isPaused = false;
-    _isRunning = true;
-    _currentSession = _currentSession!.copyWith(
-      pauseCount: _currentSession!.pauseCount + 1,
-    );
-    _startTimer();
-    notifyListeners();
-  }
-
-  // Pause active session
   void pauseSession() {
-    if (!_isRunning) return;
-
-    _isRunning = false;
+    _timer?.cancel();
     _isPaused = true;
-    _timer?.cancel();
+    _isRunning = false;
+    _currentSession?.pauseTimes.add(DateTime.now());
     notifyListeners();
   }
 
-  // Stop and complete session
+  void resumeSession() {
+    _isPaused = false;
+    _isRunning = true;
+    _currentSession?.resumeTimes.add(DateTime.now());
+    _startTimer();
+    notifyListeners();
+  }
+
   SessionModel? completeSession() {
-    if (_currentSession == null) return null;
-
     _timer?.cancel();
-
-    final completedSession = _currentSession!.copyWith(
-      endTime: DateTime.now(),
-      actualDuration: Duration(seconds: elapsedSeconds),
-      wasCompleted: _remainingSeconds <= 0,
-      xpEarned: _calculateXP(),
-    );
-
-    _reset();
-    return completedSession;
-  }
-
-  // Cancel current session
-  void cancelSession() {
-    _timer?.cancel();
-    _reset();
-  }
-
-  // Add time to current session (for break extensions)
-  void addTime(int minutes) {
-    if (!isActive) return;
-    _remainingSeconds += minutes * 60;
-    _totalSeconds += minutes * 60;
+    _isRunning = false;
+    _isPaused = false;
+    final session = _currentSession;
+    session?.complete();
+    _currentSession = null;
+    _remainingSeconds = 0;
     notifyListeners();
+    return session;
   }
 
-  // Quick session presets
-  void startPomodoroSession() => startSession(
-    type: SessionType.focus,
-    durationMinutes: 25,
-    taskDescription: 'Pomodoro Focus Session',
-  );
+  SessionModel? cancelSession() {
+    _timer?.cancel();
+    _isRunning = false;
+    _isPaused = false;
+    final session = _currentSession;
+    if (session != null) {
+      final elapsed = session.targetMinutes * 60 - _remainingSeconds;
+      session.cancel(elapsed ~/ 60);
+    }
+    _currentSession = null;
+    _remainingSeconds = 0;
+    notifyListeners();
+    return session;
+  }
 
-  void startShortBreak() => startSession(
-    type: SessionType.shortBreak,
-    durationMinutes: 5,
-    taskDescription: 'Short Break',
-  );
-
-  void startLongBreak() => startSession(
-    type: SessionType.longBreak,
-    durationMinutes: 15,
-    taskDescription: 'Long Break',
-  );
-
-  void startDeepWork() => startSession(
-    type: SessionType.deepWork,
-    durationMinutes: 90,
-    taskDescription: 'Deep Work Session',
-  );
-
-  // Private methods
   void _startTimer() {
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_remainingSeconds > 0) {
         _remainingSeconds--;
         notifyListeners();
       } else {
-        // Session completed naturally
-        timer.cancel();
+        // Timer complete
+        _timer?.cancel();
         _isRunning = false;
         notifyListeners();
       }
     });
-  }
-
-  int _calculateXP() {
-    if (_currentSession == null) return 0;
-
-    final baseXP = _currentSession!.type.baseXP;
-    final completionBonus = _remainingSeconds <= 0 ? 1.5 : 1.0;
-    final timeBonus = elapsedSeconds / 60; // 1 XP per minute
-
-    return ((baseXP + timeBonus) * completionBonus).round();
-  }
-
-  void _reset() {
-    _isRunning = false;
-    _isPaused = false;
-    _remainingSeconds = 0;
-    _totalSeconds = 0;
-    _currentSession = null;
-    notifyListeners();
   }
 
   @override

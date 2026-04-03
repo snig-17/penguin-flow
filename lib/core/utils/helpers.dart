@@ -1,179 +1,86 @@
-import 'dart:math' as math;
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'dart:math';
 
-/// Utility helper functions for PenguinFlow
-class AppHelpers {
-  /// Provide haptic feedback for button presses
-  static void lightHaptic() {
-    HapticFeedback.lightImpact();
+class Helpers {
+  Helpers._();
+
+  static String formatDuration(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
+    if (hours > 0) {
+      return '${hours}h ${minutes.toString().padLeft(2, '0')}m';
+    }
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
-  static void mediumHaptic() {
-    HapticFeedback.mediumImpact();
+  static String formatMinutes(int totalMinutes) {
+    if (totalMinutes < 60) return '${totalMinutes}m';
+    final hours = totalMinutes ~/ 60;
+    final minutes = totalMinutes % 60;
+    if (minutes == 0) return '${hours}h';
+    return '${hours}h ${minutes}m';
   }
 
-  static void heavyHaptic() {
-    HapticFeedback.heavyImpact();
-  }
+  static int xpForLevel(int level) => level * 100 + level * level * 50;
 
-  static void selectionHaptic() {
-    HapticFeedback.selectionClick();
-  }
-
-  /// Generate random colors for friend islands
-  static Color generateRandomColor() {
-    final random = math.Random();
-    return Color.fromRGBO(
-      random.nextInt(256),
-      random.nextInt(256),
-      random.nextInt(256),
-      1.0,
-    );
-  }
-
-  /// Calculate XP needed for next level
-  static int calculateXpForLevel(int level) {
-    return (level * 100) + (level * level * 50);
-  }
-
-  /// Calculate level from total XP
-  static int calculateLevelFromXp(int totalXp) {
+  static int levelFromXp(int xp) {
     int level = 1;
-    while (calculateXpForLevel(level) <= totalXp) {
+    while (xpForLevel(level) <= xp) {
       level++;
     }
     return level - 1;
   }
 
-  /// Calculate progress to next level (0.0 to 1.0)
-  static double calculateLevelProgress(int totalXp) {
-    final currentLevel = calculateLevelFromXp(totalXp);
-    final currentLevelXp = calculateXpForLevel(currentLevel);
-    final nextLevelXp = calculateXpForLevel(currentLevel + 1);
-
-    if (totalXp <= currentLevelXp) return 0.0;
-
-    final progressXp = totalXp - currentLevelXp;
-    final requiredXp = nextLevelXp - currentLevelXp;
-
-    return (progressXp / requiredXp).clamp(0.0, 1.0);
+  static double xpProgressInLevel(int xp) {
+    final level = levelFromXp(xp);
+    final currentLevelXp = xpForLevel(level);
+    final nextLevelXp = xpForLevel(level + 1);
+    if (nextLevelXp == currentLevelXp) return 0;
+    return (xp - currentLevelXp) / (nextLevelXp - currentLevelXp);
   }
 
-  /// Format time duration to readable string
-  static String formatDuration(Duration duration) {
-    if (duration.inHours > 0) {
-      return '\${duration.inHours}h \${duration.inMinutes.remainder(60)}m';
-    } else if (duration.inMinutes > 0) {
-      return '\${duration.inMinutes}m \${duration.inSeconds.remainder(60)}s';
-    } else {
-      return '\${duration.inSeconds}s';
-    }
-  }
-
-  /// Format numbers with K, M suffixes
-  static String formatNumber(int number) {
-    if (number >= 1000000) {
-      return '\${(number / 1000000).toStringAsFixed(1)}M';
-    } else if (number >= 1000) {
-      return '\${(number / 1000).toStringAsFixed(1)}K';
-    } else {
-      return number.toString();
-    }
-  }
-
-  /// Generate island position based on user ID
-  static Offset generateIslandPosition(String userId, Size mapSize) {
-    final hash = userId.hashCode.abs();
-    final random = math.Random(hash);
-
-    return Offset(
-      random.nextDouble() * mapSize.width,
-      random.nextDouble() * mapSize.height,
-    );
-  }
-
-  /// Calculate distance between two points
-  static double calculateDistance(Offset point1, Offset point2) {
-    final dx = point1.dx - point2.dx;
-    final dy = point1.dy - point2.dy;
-    return math.sqrt(dx * dx + dy * dy);
-  }
-
-  /// Clamp value with animation easing
-  static double easeInOut(double t) {
-    return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-  }
-
-  /// Generate random penguin name
-  static String generatePenguinName() {
-    final adjectives = [
-      'Happy', 'Jolly', 'Wise', 'Swift', 'Brave', 'Clever', 'Gentle', 'Bold',
-      'Sunny', 'Frosty', 'Zippy', 'Cozy', 'Peppy', 'Merry', 'Bright', 'Calm'
-    ];
-
-    final nouns = [
-      'Penguin', 'Waddle', 'Flipper', 'Arctic', 'Iceberg', 'Snow', 'Frost',
-      'Blizzard', 'Glacier', 'Crystal', 'Winter', 'Polar', 'Storm', 'Chill'
-    ];
-
-    final random = math.Random();
-    final adjective = adjectives[random.nextInt(adjectives.length)];
-    final noun = nouns[random.nextInt(nouns.length)];
-
-    return '\$adjective \$noun';
-  }
-
-  /// Show snackbar with custom styling
-  static void showSnackBar(
-    BuildContext context,
-    String message, {
-    Color? backgroundColor,
-    Color? textColor,
-    Duration duration = const Duration(seconds: 3),
-    SnackBarAction? action,
+  static int calculateSessionXp({
+    required int durationMinutes,
+    required String sessionType,
+    required bool completed,
   }) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: TextStyle(color: textColor),
-        ),
-        backgroundColor: backgroundColor,
-        duration: duration,
-        action: action,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-    );
+    final multiplier = switch (sessionType) {
+      'study' => 2.0,
+      'creative' => 3.0,
+      _ => 1.0,
+    };
+    var xp = (durationMinutes * 10 * multiplier).round();
+    if (completed) xp = (xp * 1.5).round();
+    return xp;
   }
 
-  /// Validate if string is not empty
-  static bool isNotEmpty(String? value) {
-    return value != null && value.trim().isNotEmpty;
+  static String levelTitle(int level) {
+    if (level < 5) return 'Beginner Explorer';
+    if (level < 10) return 'Island Apprentice';
+    if (level < 15) return 'Focus Warrior';
+    if (level < 25) return 'Island Architect';
+    if (level < 35) return 'Master Builder';
+    if (level < 50) return 'Legendary Creator';
+    return 'Island Emperor';
   }
 
-  /// Capitalize first letter of string
-  static String capitalize(String text) {
-    if (text.isEmpty) return text;
-    return text[0].toUpperCase() + text.substring(1);
+  static String randomMotivation() {
+    const messages = [
+      'Stay focused, your island is growing!',
+      'Every minute counts!',
+      'Your penguin believes in you!',
+      'Great things take time!',
+    ];
+    return messages[Random().nextInt(messages.length)];
   }
 
-  /// Generate achievement icon based on type
-  static IconData getAchievementIcon(String achievementType) {
-    switch (achievementType) {
-      case 'first_session':
-        return Icons.play_circle_fill;
-      case 'streak':
-        return Icons.local_fire_department;
-      case 'sessions':
-        return Icons.psychology;
-      case 'level':
-        return Icons.emoji_events;
-      default:
-        return Icons.star;
-    }
+  static String timeAgo(DateTime dateTime) {
+    final diff = DateTime.now().difference(dateTime);
+    if (diff.inDays > 365) return '${diff.inDays ~/ 365}y ago';
+    if (diff.inDays > 30) return '${diff.inDays ~/ 30}mo ago';
+    if (diff.inDays > 0) return '${diff.inDays}d ago';
+    if (diff.inHours > 0) return '${diff.inHours}h ago';
+    if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
+    return 'just now';
   }
 }
